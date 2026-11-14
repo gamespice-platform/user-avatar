@@ -1,5 +1,3 @@
-# dot-user-avatar
-
 Player avatars as data, so a dedicated server can check one without ever loading a mesh. An avatar is a schema id, a set of part ids and a set of colours: a few dozen bytes. The server validates it against the schema and the player's entitlements, and a client resolves the part ids to real assets.
 
 ## Install
