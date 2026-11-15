@@ -3,9 +3,9 @@ Player avatars as data, so a dedicated server can check one without ever loading
 ## Install
 
 1. Get [Godot 4.7](https://godotengine.org/download).
-2. Either use [dot-bootstrap](https://github.com/modcommunity/dot-bootstrap), which clones every project and links the addons, or copy `addons/dot_user_avatar/` and [dot-core](https://github.com/modcommunity/dot-core)'s `addons/dot_core/` into your project and enable both in *Project > Project Settings > Plugins*.
+2. Either use [dot-bootstrap](https://github.com/gamespice-platform/bootstrap), which clones every project and links the addons, or copy `addons/dot_user_avatar/` and [dot-core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable both in *Project > Project Settings > Plugins*.
 
-dot-core is the only dependency. [dot-user](https://github.com/modcommunity/dot-user), [dot-cloud](https://github.com/modcommunity/dot-cloud), [dot-net](https://github.com/modcommunity/dot-net) and [dot-server](https://github.com/modcommunity/dot-server) work with it, and none is imported.
+dot-core is the only dependency. [dot-user](https://github.com/gamespice-platform/user), [dot-cloud](https://github.com/gamespice-platform/cloud), [dot-net](https://github.com/gamespice-platform/net) and [dot-server](https://github.com/gamespice-platform/server) work with it, and none is imported.
 
 ## Use
 
@@ -80,6 +80,6 @@ Import the project once, then run `examples/avatar_demo.tscn` headless with Godo
 
 ## Status and licence
 
-Part of the TMC **dot-\*** family of Godot addons. Written with Claude Code and maintained by `gamemann`. Every addon has headless tests, but little of this has been played by real users yet, so expect rough edges and please [open an issue](https://github.com/modcommunity/dot-user-avatar/issues) when you hit one.
+Part of the TMC **dot-\*** family of Godot addons. Written with Claude Code and maintained by `gamemann`. Every addon has headless tests, but little of this has been played by real users yet, so expect rough edges and please [open an issue](https://github.com/gamespice-platform/user-avatar/issues) when you hit one.
 
 MIT licence, see [LICENSE](LICENSE). The only closed part of the TMC platform is the web back end; you can use your own instead of TMC's.
