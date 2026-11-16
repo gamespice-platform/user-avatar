@@ -11,8 +11,10 @@ const POSE := &"pose"
 const GESTURE := &"gesture"
 const KINDS: Array[StringName] = [EMOTE, POSE, GESTURE]
 
-## The site's cap per kind (AVATAR_ACTION_EQUIP_MAX); anything past it is dropped while reading.
-const MAX_EQUIPPED := 8
+## The site's default equip cap per kind (AVATAR_ACTION_EQUIP_MAX), for documentation and tests only. The live value is
+## the site's `play.avatar.maxActionsEquipped`, returned as `max` by the actions read (0 = unlimited): pass it to
+## [method from_backbone]. Nothing is capped here on its own.
+const SITE_DEFAULT_MAX := 8
 
 ## The starter set, by the ids the site's BUILTIN_AVATAR_ACTIONS uses. Add, never rename.
 const BUILTIN := {
@@ -36,6 +38,8 @@ const _MAX_CLIP := 64
 
 var _equipped := {}
 var _cursor := {}
+## The app's switches; null means every kind is on.
+var rules: DotAvatarAppRules = null
 
 
 func _init() -> void:
@@ -66,37 +70,60 @@ static func builtin_entry(id: String) -> Dictionary:
 
 ## Reads the backbone's [code]{ EMOTE: [...], POSE: [...], GESTURE: [...] }[/code]. A malformed
 ## entry is dropped rather than failing the whole loadout; a non-dictionary is [code]parse[/code].
-## A kind left empty gets the built-ins of that kind, as the site does.
-static func from_backbone(actions: Variant) -> DotResult:
+## A null field (a backbone that predates actions) gives the starter set. A dictionary is the site's answer
+## for this app and is taken as given: a kind the app switched off, or hid every item of, stays empty.
+## [param max_equipped] is the site's equip cap per kind, 0 = unlimited; a list over it is refused with
+## [code]quota[/code] naming the kind, never trimmed. [param app_rules] empties every kind the app has off.
+static func from_backbone(actions: Variant, max_equipped: int = 0, app_rules: DotAvatarAppRules = null) -> DotResult:
+	if max_equipped < 0:
+		return DotResult.fail(DotError.CODE_INVALID, "max_equipped is negative", str(max_equipped))
 	if actions == null:
-		return DotResult.success(defaults())
+		var d := defaults()
+		d.rules = app_rules
+		d._apply_rules()
+		return DotResult.success(d)
 	if not actions is Dictionary:
 		return DotResult.fail(DotError.CODE_PARSE, "avatar actions are not an object")
 
 	var out := DotAvatarActions.new()
+	out.rules = app_rules
 	var dropped := 0
 	for kind in KINDS:
 		var rows: Variant = (actions as Dictionary).get(String(kind).to_upper(), [])
 		if not rows is Array:
 			dropped += 1
 			continue
+		if max_equipped > 0 and (rows as Array).size() > max_equipped:
+			return DotResult.fail(
+				DotError.CODE_QUOTA,
+				"%d %s entries equipped, the site allows %d (play.avatar.maxActionsEquipped)" % [(rows as Array).size(), kind, max_equipped],
+				String(kind)
+			)
 		for row: Variant in rows:
-			if out._equipped[kind].size() >= MAX_EQUIPPED:
-				dropped += 1
-				break
 			var entry := _read_entry(row, kind)
 			if entry.is_empty():
 				dropped += 1
 				continue
 			out._equipped[kind].append(entry)
 
-	var fallback := defaults()
-	for kind in KINDS:
-		if out._equipped[kind].is_empty():
-			out._equipped[kind] = fallback._equipped[kind].duplicate()
+	out._apply_rules()
 	if dropped > 0:
 		DotLog.debug(CHANNEL, "dropped %d unusable action entries" % dropped)
 	return DotResult.success(out)
+
+
+## Empties every kind the app has switched off.
+func _apply_rules() -> void:
+	if rules == null:
+		return
+	for kind in KINDS:
+		if not rules.allows_kind(kind):
+			_equipped[kind] = []
+
+
+## Whether the app lets this kind be used at all.
+func allows(kind: StringName) -> bool:
+	return rules == null or rules.allows_kind(kind)
 
 
 static func _read_entry(row: Variant, kind: StringName) -> Dictionary:
@@ -140,6 +167,8 @@ func equipped(kind: StringName) -> Array:
 ## The entry the key plays now, advancing so the next press plays the one after. Empty when
 ## nothing of that kind is equipped.
 func next(kind: StringName) -> Dictionary:
+	if not allows(kind):
+		return {}
 	var list: Array = _equipped.get(kind, [])
 	if list.is_empty():
 		return {}
@@ -150,6 +179,8 @@ func next(kind: StringName) -> Dictionary:
 
 ## An equipped entry of [param kind] by id, else the built-in of that id and kind; empty if neither.
 func find(kind: StringName, id: String) -> Dictionary:
+	if not allows(kind):
+		return {}
 	for entry: Dictionary in _equipped.get(kind, []):
 		if entry["id"] == id:
 			return entry

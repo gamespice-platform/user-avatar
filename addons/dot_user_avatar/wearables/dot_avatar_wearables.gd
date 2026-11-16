@@ -42,6 +42,9 @@ var cache: Object = null
 ## Overrides [member cache]: [code]func(row: Dictionary) -> DotResult[/code] of a [Node3D].
 var scene_fn: Callable
 
+## The app's wearable switch and per-wearable rules; null means everything the site sent may be worn.
+var rules: DotAvatarAppRules = null
+
 var _applied := {}
 
 
@@ -117,7 +120,13 @@ func apply(skeleton: Skeleton3D, rows: Array) -> DotResult:
 	clear()
 	if skeleton == null or not is_instance_valid(skeleton):
 		return DotResult.fail(DotError.CODE_STATE, "no skeleton to hang wearables on")
+	if rules != null and not rules.allows_wearables():
+		DotLog.debug(CHANNEL, "wearables are switched off for this app; none worn")
+		return DotResult.success(0)
 	for raw in rows:
+		if rules != null and raw is Dictionary and (raw as Dictionary).has("id") and not rules.allows_wearable(raw["id"]):
+			DotLog.debug(CHANNEL, "wearable %s is switched off for this app; not worn" % str(raw["id"]))
+			continue
 		var checked := check_row(raw)
 		if not checked.ok:
 			DotLog.warn(CHANNEL, "skipped a wearable: %s" % checked.error.message)

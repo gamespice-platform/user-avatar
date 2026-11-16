@@ -26,12 +26,14 @@ Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is sp
 | `addons/dot_user_avatar/store/` | `DotAvatarStore` and its memory, local and backbone stores |
 | `addons/dot_user_avatar/actions/` | `DotAvatarActions` (equipped emotes, poses, gestures; the starter set's ids match the site's `BUILTIN_AVATAR_ACTIONS`), `DotAvatarActionInput` (`,` `;` `/`, rebindable, and console commands), `DotAvatarContentCache` (uploaded GLBs by content id, verified, loaded with `GLTFDocument`), `DotAvatarContentFetcher` (before connecting: reads the site's `/api/avatar/v1/library`, downloads the content ids a server requires into the cache, holds a `DotLoadGate` until all are verified; failure keeps the gate held and the caller must not connect) |
 | `addons/dot_user_avatar/wearables/` | `DotAvatarWearables`: the site's equipped wearables (rigid GLBs, one per slot) hung on a figure's `Skeleton3D` with a `BoneAttachment3D` each; slot, bone and offset re-checked against the site's tables (`src/types/avatar/wearables.ts`), humanoid bone names resolved through aliases (the built-in figure, rig prefixes). Rows come from `DotAvatarSync.fetch_wearables`, files from `DotAvatarContentCache` |
+| `addons/dot_user_avatar/rules/` | `DotAvatarAppRules`: a game's per-app switches (actionsEnabled, emotesEnabled, posesEnabled, gesturesEnabled, wearablesEnabled) and per-wearable rules from the site; `DotAvatarActions.from_backbone(actions, max, rules)` and `DotAvatarWearables.rules` honour them (an off kind is empty, an off wearable is not hung). The site's answer is taken as given: no built-in fallback, max 0 = unlimited, over a nonzero max fails with CODE_QUOTA, never trimmed |
+| `addons/dot_user_avatar/net/dot_avatar_library_client.gd` | `DotAvatarLibraryClient`: the player-token `/api/app/v1/avatar/actions` and `/wearables` calls; every GET and PUT carries `appId`, equips are checked against the site's max locally first |
 | `tools/export_avatar_manifest.gd` | `EditorScript`: parts to `.glb` and the website editor's manifest |
 | `examples/avatar_demo.tscn` | the suite; all offline, non-zero on failure |
 
 ## Running and testing
 
-- The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `godot --headless --path . res://examples/avatar_demo.tscn`, `res://examples/avatar_fetch.tscn` (the fetcher, offline) and `res://examples/avatar_wearables.tscn`.
+- The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `godot --headless --path . res://examples/avatar_demo.tscn`, `res://examples/avatar_fetch.tscn` (the fetcher, offline) and `res://examples/avatar_wearables.tscn` and `res://examples/avatar_app_rules.tscn`.
 - `_test_store_contract` runs one sequence against every store and requires the same answers. **Add any new store to it.**
 - **Add a case for any change to `DotAvatarSchema.validate`, `DotAvatarSync.read` or the entitlement path**: there a bug is a vulnerability rather than a crash.
 

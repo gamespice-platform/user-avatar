@@ -39,19 +39,18 @@ func _test_actions() -> void:
 	for e: Dictionary in a.equipped(&"emote"):
 		ids.append(e["id"])
 	h._check(ids == ["dance", "action/7/2"], "built-ins of another kind and unknown ids are dropped", str(ids))
-	h._check(a.equipped(&"pose").size() == 4, "an empty kind falls back to its built-ins")
-	h._check(a.equipped(&"gesture").size() == 5, "a traversal id and an off-origin url are refused")
+	h._check(a.equipped(&"pose").is_empty(), "an empty kind stays empty: the site answer is taken as given")
+	h._check(a.equipped(&"gesture").is_empty(), "a traversal id and an off-origin url are refused")
 
 	var many := []
 	for i in 20:
 		many.append({"builtin": "dance"})
-	var capped := DotAvatarActions.from_backbone({"EMOTE": many})
-	h._check(capped.ok and (capped.value as DotAvatarActions).equipped(&"emote").size() == DotAvatarActions.MAX_EQUIPPED,
-		"equipped actions are capped while reading")
+	var capped := DotAvatarActions.from_backbone({"EMOTE": many}, 8)
+	h._check(not capped.ok and capped.error.code == DotError.CODE_QUOTA, "over the site max fails loudly, never trimmed")
 
 	var order := [a.next(&"emote")["id"], a.next(&"emote")["id"], a.next(&"emote")["id"]]
 	h._check(order == ["dance", "action/7/2", "dance"], "pressing again cycles", str(order))
-	h._check(a.find(&"emote", "wave").is_empty() and a.find(&"gesture", "wave")["builtin"] == true,
+	h._check(a.find(&"emote", "wave").is_empty() and a.find(&"gesture", "dance").is_empty() and a.find(&"emote", "dance")["builtin"] == true,
 		"find answers only within a kind")
 	var files := a.files()
 	h._check(files.size() == 1 and files[0]["content_id"] == "action/7/2", "only uploaded actions need a file")
