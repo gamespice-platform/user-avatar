@@ -2,7 +2,7 @@ class_name DotAvatarStore
 extends RefCounted
 
 ## Where avatar documents live, keyed by the player's scoped id.
-## Same shape and rules as dot-user's profile store: loads may be slow, join-path lookups may not, and a failed read keeps what is in force.
+## Same shape and rules as GameSpice User's profile store: loads may be slow, join-path lookups may not, and a failed read keeps what is in force.
 ## Keyed by the scoped id, never an account id, so two operators cannot correlate players by directory listing.
 
 const CHANNEL := "avatar.store"

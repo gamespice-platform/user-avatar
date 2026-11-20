@@ -4,12 +4,12 @@ extends Node
 
 ## Resolves, validates and publishes avatars; usage in README.md. The node a game adds.
 ## Server rule: a client's avatar is validated against schema and entitlements, loading no mesh, texture or scene.
-## dot-user is not imported: [code]dot_user_manager[/code] is found through [DotRegistry] only to keep the profile digest current.
+## GameSpice User is not imported: [code]dot_user_manager[/code] is found through [DotRegistry] only to keep the profile digest current.
 
 const CHANNEL := "avatar"
 const SERVICE := &"dot_avatar_manager"
 
-## dot-user's registry name. Looked up, never imported.
+## GameSpice User's registry name. Looked up, never imported.
 const USER_SERVICE := &"dot_user_manager"
 
 ## Emitted once an avatar is resolved for a player.
@@ -345,7 +345,7 @@ func publish(
 
 	_remember(user_key, avatar, true)
 
-	# Keep the profile's digest current, if dot-user is installed. This is what lets
+	# Keep the profile's digest current, if GameSpice User is installed. This is what lets
 	# every other client tell that its cached copy of this player is stale without
 	# fetching the document to find out.
 	_update_profile_digest(user_key, avatar)
@@ -354,7 +354,7 @@ func publish(
 	return DotResult.success(avatar.digest())
 
 
-## Writes the avatar's digest into the player's profile, when dot-user is present.
+## Writes the avatar's digest into the player's profile, when GameSpice User is present.
 ## Best-effort: a profile write must not fail an avatar publish.
 func _update_profile_digest(user_key: String, avatar: DotAvatar) -> void:
 	var users := DotRegistry.get_service(USER_SERVICE)

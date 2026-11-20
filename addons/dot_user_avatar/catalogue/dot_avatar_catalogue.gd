@@ -1,7 +1,7 @@
 class_name DotAvatarCatalogue
 extends RefCounted
 
-## Turns a part id into something a client can render, through dot-cloud (signed manifests, content hashes).
+## Turns a part id into something a client can render, through GameSpice Cloud (signed manifests, content hashes).
 ## Duck-typed, never imported: anything with [code]resolve(content_id)[/code] or [code]has(content_id)[/code]
 ## found under [code]dot_cloud_client[/code] works; absent it, built-in paths are used.
 
@@ -17,7 +17,7 @@ var auto_fetch: bool = true
 
 const CHANNEL := "avatar.catalogue"
 
-## Registry name dot-cloud publishes itself under.
+## Registry name GameSpice Cloud publishes itself under.
 ## Kept for [method describe]; fetching goes through [DotContent], the family's one caller for downloadable content.
 const CLOUD_SERVICE := &"dot_cloud_client"
 
@@ -33,7 +33,7 @@ var builtin_suffix: String = ".tscn"
 ## The escape hatch for a game whose content layout is nothing like either default.
 var resolver: Callable = Callable()
 
-## The dot-cloud client, when one is installed. Resolved lazily.
+## The GameSpice Cloud client, when one is installed. Resolved lazily.
 var _cloud: Object = null
 var _cloud_checked: bool = false
 

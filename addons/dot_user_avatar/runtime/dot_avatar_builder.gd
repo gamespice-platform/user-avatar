@@ -166,7 +166,7 @@ static func _tint_recursive(node: Node, channel: int, colour: Color) -> void:
 		_tint_recursive(child, channel, colour)
 
 
-## The same plan as plain dictionaries, for dot-player-char to build.
+## The same plan as plain dictionaries, for GameSpice Player Char to build.
 ## The planner stays here so a server validates from ids without a rendering addon; [code]DotPlayerModelBuilder.from_plan[/code] consumes this and neither addon imports the other.
 ## [method apply] still works for a game with only this addon; usage in docs/integration.md.
 static func plan_dicts(steps: Array[Step]) -> Array[Dictionary]:

@@ -23,7 +23,7 @@ var cache := DotAvatarContentCache.new()
 var gate: DotLoadGate = null
 
 ## Optional [code]func(url: String) -> PackedStringArray[/code] of mirror copies to try first,
-## usually dot-cloud's [code]DotCloudClient.mirror_alternatives[/code]. Every copy is hash-checked
+## usually GameSpice Cloud's [code]DotCloudClient.mirror_alternatives[/code]. Every copy is hash-checked
 ## by the cache, so a mirror can only fail a download; the origin url is always tried last.
 var mirror_alternatives_fn: Callable = Callable()
 

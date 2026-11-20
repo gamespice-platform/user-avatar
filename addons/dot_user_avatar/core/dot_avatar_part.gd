@@ -4,7 +4,7 @@ extends Resource
 
 ## One thing a player can wear or be: a hair style, a jacket, a head shape.
 ## A description, not an asset: it names content by id, so a dedicated server holds the whole catalogue without a vertex.
-## The asset is resolved on the client through [DotAvatarCatalogue] and dot-cloud.
+## The asset is resolved on the client through [DotAvatarCatalogue] and GameSpice Cloud.
 
 ## Stable identifier. Travels on the wire and is what entitlements key on.
 ## Never reassign one: a changed meaning silently redresses everyone wearing it.
@@ -18,7 +18,7 @@ extends Resource
 
 @export_group("Content")
 
-## Content id resolved through dot-cloud. Empty means the part is built into the game.
+## Content id resolved through GameSpice Cloud. Empty means the part is built into the game.
 ## A plain string, not a resource path, so a server can carry it without the asset in its build.
 @export var content_id: String = ""
 

@@ -5,9 +5,9 @@ Player avatars as data, so a dedicated server can check one without ever loading
 ## Install
 
 1. Get [Godot 4.7](https://godotengine.org/download).
-2. Either use [dot-bootstrap](https://github.com/gamespice-platform/bootstrap), which clones every project and links the addons, or copy `addons/dot_user_avatar/` and [dot-core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable both in *Project > Project Settings > Plugins*.
+2. Either use [GameSpice Bootstrap](https://github.com/gamespice-platform/bootstrap), which clones every project and links the addons, or copy `addons/dot_user_avatar/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable both in *Project > Project Settings > Plugins*.
 
-dot-core is the only dependency. [dot-user](https://github.com/gamespice-platform/user), [dot-cloud](https://github.com/gamespice-platform/cloud), [dot-net](https://github.com/gamespice-platform/net) and [dot-server](https://github.com/gamespice-platform/server) work with it, and none is imported.
+GameSpice Core is the only dependency. [GameSpice User](https://github.com/gamespice-platform/user), [GameSpice Cloud](https://github.com/gamespice-platform/cloud), [GameSpice Net](https://github.com/gamespice-platform/net) and [GameSpice Server](https://github.com/gamespice-platform/server) work with it, and none is imported.
 
 ## Use
 
@@ -43,7 +43,7 @@ Validation answers four questions from ids alone: does the slot exist, does the 
 | `DotAvatarSchema` | Slots, parts, and the `validate` and `conform` pair. |
 | `DotAvatarSlot`, `DotAvatarPart` | What a game defines: layers, defaults, fallbacks, entitlement. |
 | `DotAvatarEntitlements` | What one player may wear. Owns nothing by default. |
-| `DotAvatarCatalogue` | Part id to content, through dot-cloud when it is installed. |
+| `DotAvatarCatalogue` | Part id to content, through GameSpice Cloud when it is installed. |
 | `DotAvatarBuilder` | Plan (pure) and apply (touches nodes). |
 | `DotAvatarSync` | Bit-packed wire format and the back end endpoints. |
 | `DotAvatarStore` | Where documents live: memory, JSON files or a back end. |
@@ -65,7 +65,7 @@ manager.config.read_only = true    # most servers should read and never publish
 The protocol is `GET`, `PUT` and `DELETE /user/{key}/avatar`, plus a public `GET /api/avatar/v1/schema`. It is open and anyone can implement their own; the spec is at [docs/api/avatar-protocol.md](https://moddingcommunity.com/docs/api/avatar-protocol.md).
 
 - The server holds its own credential, never the player's.
-- `{key}` is a scoped derivation, not an account id, so no two operators can compare logs and follow a player across servers (see dot-user).
+- `{key}` is a scoped derivation, not an account id, so no two operators can compare logs and follow a player across servers (see GameSpice User).
 
 ## When things go wrong
 

@@ -160,7 +160,7 @@ func _manager_defaults() -> void:
 		"a default that does not fit the schema is the schema's own, not a refusal"
 	)
 
-	# Null is "no opinion": what dot-platform's wrapper answers for a game with no stock
+	# Null is "no opinion": what GameSpice Platform's wrapper answers for a game with no stock
 	# function. The schema's default, and no WARN — one per first-time player otherwise.
 	varied.default_avatar_fn = func(_user_key: String) -> DotAvatar:
 		return null

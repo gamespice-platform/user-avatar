@@ -2,7 +2,7 @@ class_name DotAvatarActions
 extends RefCounted
 
 ## A player's equipped emotes, poses and gestures as the backbone's `actions` field delivers them,
-## plus the built-in starter set. Data only: playing an entry is the figure's job (dot-player-char).
+## plus the built-in starter set. Data only: playing an entry is the figure's job (GameSpice Player Char).
 
 const CHANNEL := "avatar.actions"
 

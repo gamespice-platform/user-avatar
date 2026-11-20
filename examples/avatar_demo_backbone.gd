@@ -208,7 +208,7 @@ func _protocol_refusals(key: String, a: DotAvatar) -> DotAvatarStoreBackbone:
 	return read_only
 
 
-# Delivered content: the catalogue once asked dot-cloud whether a part was mounted and never to fetch it,
+# Delivered content: the catalogue once asked GameSpice Cloud whether a part was mounted and never to fetch it,
 # so every such wearer fell back silently. The catalogue test above runs with NO cloud client and cannot see it.
 
 
@@ -425,7 +425,7 @@ func _test_backbone_transport() -> void:
 
 	# A manager's _ready and its host's setup() both open the store. Two overlapping
 	# opens each queued the same client onto the root, and the second add_child was an
-	# engine error on every boot of a server using dot-platform.
+	# engine error on every boot of a server using GameSpice Platform.
 	var slow := SlowOpenStore.new()
 	var results: Array = []
 	var opener := func() -> void: results.append(await slow.open())

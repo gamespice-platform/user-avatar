@@ -2,14 +2,14 @@ class_name DotAvatarKey
 extends RefCounted
 
 ## Whether a string is usable as the key an avatar is filed under.
-## Not [code]DotAvatarKey.is_usable[/code] from dot-user: only dot-core is a hard dependency.
+## Not [code]DotAvatarKey.is_usable[/code] from GameSpice User: only GameSpice Core is a hard dependency.
 ## Structural only (no traversal, URL escape or log newline); whether a key is genuine comes from the connect ticket.
 
 ## Shortest key accepted. Below this a key is not plausibly an id at all.
 const MIN_LENGTH := 8
 
 ## Longest key accepted.
-## Above the 22 characters dot-user's scoped ids use, far below any filename problem.
+## Above the 22 characters GameSpice User's scoped ids use, far below any filename problem.
 const MAX_LENGTH := 64
 
 
@@ -18,7 +18,7 @@ func _init() -> void:
 
 
 ## Base64url characters only: letters, digits, dash, underscore.
-## Admits every dot-user id and excludes anything meaningful to a filesystem, URL or log line (the dot too, so never [code]..[/code]).
+## Admits every GameSpice User id and excludes anything meaningful to a filesystem, URL or log line (the dot too, so never [code]..[/code]).
 static func is_usable(key: String) -> bool:
 	if key.length() < MIN_LENGTH or key.length() > MAX_LENGTH:
 		return false

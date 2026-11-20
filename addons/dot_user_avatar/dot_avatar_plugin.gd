@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-## Editor entry point for dot-user-avatar. Registers inspector types only.
+## Editor entry point for GameSpice User Avatar. Registers inspector types only.
 ## No autoload: a process may run a server and a client at once. [DotAvatarManager] registers in [DotRegistry] instead.
 
 const _ICON := "res://addons/dot_user_avatar/icon_placeholder.svg"

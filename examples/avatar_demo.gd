@@ -501,7 +501,7 @@ func _test_conform() -> void:
 	_done()
 
 
-## A stand-in for DotNetWriter / DotNetReader; dot-net is not installed here, but the duck-typed
+## A stand-in for DotNetWriter / DotNetReader; GameSpice Net is not installed here, but the duck-typed
 ## calls must line up with the real thing, as a method-name typo only fails in a host game.
 class FakeWire extends RefCounted:
 	var values: Array = []
@@ -647,7 +647,7 @@ func _test_catalogue() -> void:
 
 	var catalogue := DotAvatarCatalogue.new()
 
-	# No dot-cloud installed and no built-in content, so nothing resolves. That is a
+	# No GameSpice Cloud installed and no built-in content, so nothing resolves. That is a
 	# normal outcome on a server and in a test, and it must not be a failure.
 	var streamed := _schema.part(&"hat_streamed")
 	_check(

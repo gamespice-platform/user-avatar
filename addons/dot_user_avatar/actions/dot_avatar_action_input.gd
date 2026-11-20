@@ -62,8 +62,8 @@ func request(kind: StringName, id: String = "") -> Dictionary:
 	return entry
 
 
-## Adds [code]emote[/code], [code]pose[/code] and [code]gesture[/code] to a dot-console local
-## (anything with [code]add_command(name, help, fn)[/code]); duck-typed so dot-console stays optional.
+## Adds [code]emote[/code], [code]pose[/code] and [code]gesture[/code] to a GameSpice Console local
+## (anything with [code]add_command(name, help, fn)[/code]); duck-typed so GameSpice Console stays optional.
 func register_console(local: Object) -> void:
 	if local == null or not local.has_method(&"add_command"):
 		return

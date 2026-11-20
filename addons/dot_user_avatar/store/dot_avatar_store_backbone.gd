@@ -86,7 +86,7 @@ func _open() -> DotResult:
 
 		# DotHttp is a Node and sends through HTTPRequest children, which only work in the tree; an orphan
 		# client fails every request with engine error 3. Parent to the root, deferred (open() may run inside
-		# _ready), then await a frame. Same fix as dot-user's DotUserStoreBackbone.
+		# _ready), then await a frame. Same fix as GameSpice User's DotUserStoreBackbone.
 	if not http.is_inside_tree():
 		var tree := Engine.get_main_loop() as SceneTree
 

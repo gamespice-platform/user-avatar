@@ -2,7 +2,7 @@ class_name DotAvatarSync
 extends RefCounted
 
 ## Moving avatars between machines: the wire format, and the backbone endpoints.
-## dot-net is not imported: a script naming a class the project lacks fails to parse, so writer and reader are typed [Variant] and called by name, as [code]DotTransportENet[/code] reaches ENet.
+## GameSpice Net is not imported: a script naming a class the project lacks fails to parse, so writer and reader are typed [Variant] and called by name, as [code]DotTransportENet[/code] reaches ENet.
 ## An avatar changes only in the editor, so it travels once on join; every client needs continuously only the 16-character digest.
 
 # No log channel: a static codec that logged would write a line per hostile packet with nothing to name;

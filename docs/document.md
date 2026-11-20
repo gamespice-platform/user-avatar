@@ -6,7 +6,7 @@ What an avatar is, how a server decides it is legal without the art, and the rul
 
 **A dedicated server must be able to decide whether an avatar is legal without holding any of the art.**
 
-That single requirement produced the whole shape. A server checks four things (does the slot exist, does the part exist and fit that slot, is the player entitled to it, are the colours within the part's channel count) and all four are answered from ids. So the document names its parts and the parts name their content, and the resolution from a part id to an actual scene happens only on a client, only through `DotAvatarCatalogue`, only via dot-cloud.
+That single requirement produced the whole shape. A server checks four things (does the slot exist, does the part exist and fit that slot, is the player entitled to it, are the colours within the part's channel count) and all four are answered from ids. So the document names its parts and the parts name their content, and the resolution from a part id to an actual scene happens only on a client, only through `DotAvatarCatalogue`, only via GameSpice Cloud.
 
 The alternative, an avatar that carries or references its meshes, means a server running a match has to ship every cosmetic anyone owns. That is not a scaling problem to solve later; it is the difference between a platform and a game.
 
@@ -56,7 +56,7 @@ Alpha is dropped rather than quantised. A tint with alpha is a transparency sett
 
 ## The digest, and why a profile carries it
 
-`DotAvatar.digest()` is sixteen characters over the sorted slots, the part ids and the quantised colours. dot-user's `DotUserProfile.avatar_id` holds it.
+`DotAvatar.digest()` is sixteen characters over the sorted slots, the part ids and the quantised colours. GameSpice User's `DotUserProfile.avatar_id` holds it.
 
 A scoreboard of thirty players therefore carries thirty digests, not thirty documents, and fetches only the ones it does not already hold. It depends on sorted slot order, which is why `filled_slots()` sorts: two machines that built the same avatar must compute the same digest, and so must the backbone, which sorts by text. **`filled_slots()` sorts by text with `sort_custom`, never `sort()`**: Godot orders StringNames by where they were interned, so `sort()` gives an order that depends on what the process interned first. The suite pins the digest to values website-city computes ("digest matches the site"), because every other digest check compares this addon with itself.
 
