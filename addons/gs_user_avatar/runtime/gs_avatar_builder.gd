@@ -159,7 +159,7 @@ static func _tint_recursive(node: Node, channel: int, colour: Color) -> void:
 		# set_instance_shader_parameter is per-instance, so it cannot leak between
 		# two players wearing the same part.
 		(node as GeometryInstance3D).set_instance_shader_parameter(
-			"dot_avatar_tint_%d" % channel, colour
+			"gs_avatar_tint_%d" % channel, colour
 		)
 
 	for child in node.get_children():

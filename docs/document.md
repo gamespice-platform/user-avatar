@@ -46,7 +46,7 @@ A document is relayed to every other player in the match, so an unbounded one is
 
 Ids are restricted to base64url characters plus `.`, deliberately narrow. They become dictionary keys, log lines and, on a client, part of a content lookup; a path separator or a control character in one is never legitimate. Widening the set later is easy; narrowing it after content has shipped is not.
 
-`GSAvatarKey` is a **separate** structural check from dot-user's `GSUserScope.is_well_formed`, and that duplication is deliberate: reusing dot-user's would make this addon import it, and the family rule is that only dot-core is a hard dependency. This addon never mints or verifies a key; it receives one and files a document under it, so all it needs is the guard that stops a key becoming a directory traversal. It is the same shape as dot-user's ids so the two interoperate without depending on each other.
+`GSAvatarKey` is a **separate** structural check from gs-user's `GSUserScope.is_well_formed`, and that duplication is deliberate: reusing gs-user's would make this addon import it, and the family rule is that only gs-core is a hard dependency. This addon never mints or verifies a key; it receives one and files a document under it, so all it needs is the guard that stops a key becoming a directory traversal. It is the same shape as gs-user's ids so the two interoperate without depending on each other.
 
 ## Colours are quantised on the way in
 

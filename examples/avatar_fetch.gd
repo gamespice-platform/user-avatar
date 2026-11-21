@@ -74,7 +74,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-user-avatar fetch self-test")
+	print("gs-user-avatar fetch self-test")
 	await _test_fetch()
 	await _test_failures()
 	await _test_gate()

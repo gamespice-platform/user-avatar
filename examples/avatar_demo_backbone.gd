@@ -251,7 +251,7 @@ func _test_catalogue_delivery() -> void:
 	var cloud := StubCloud.new()
 	cloud.name = "StubCloud"
 	h.add_child(cloud)
-	GSRegistry.register(&"dot_cloud_client", cloud)
+	GSRegistry.register(&"gs_cloud_client", cloud)
 
 	var catalogue := GSAvatarCatalogue.new()
 
@@ -311,7 +311,7 @@ func _test_catalogue_delivery() -> void:
 
 	await _delivery_failed(cloud)
 
-	GSRegistry.unregister(&"dot_cloud_client")
+	GSRegistry.unregister(&"gs_cloud_client")
 	cloud.queue_free()
 	h._done()
 

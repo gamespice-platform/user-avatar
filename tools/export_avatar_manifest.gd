@@ -209,7 +209,7 @@ static func _option_key(slot: GSAvatarSlot, part: GSAvatarPart) -> String:
 
 
 ## Where a part's scene lives.
-## `content_id` is a dot-cloud address, usable only when it is a `res://` path; else `res://content/avatar/parts/<part id>.tscn`, and a part with neither is reported.
+## `content_id` is a gs-cloud address, usable only when it is a `res://` path; else `res://content/avatar/parts/<part id>.tscn`, and a part with neither is reported.
 static func _scene_for(part: GSAvatarPart) -> String:
 	if part.content_id.begins_with("res://") and ResourceLoader.exists(part.content_id):
 		return part.content_id

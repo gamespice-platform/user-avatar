@@ -4,13 +4,13 @@ extends Node
 
 ## Resolves, validates and publishes avatars; usage in README.md. The node a game adds.
 ## Server rule: a client's avatar is validated against schema and entitlements, loading no mesh, texture or scene.
-## GameSpice User is not imported: [code]dot_user_manager[/code] is found through [GSRegistry] only to keep the profile digest current.
+## GameSpice User is not imported: [code]gs_user_manager[/code] is found through [GSRegistry] only to keep the profile digest current.
 
 const CHANNEL := "avatar"
-const SERVICE := &"dot_avatar_manager"
+const SERVICE := &"gs_avatar_manager"
 
 ## GameSpice User's registry name. Looked up, never imported.
-const USER_SERVICE := &"dot_user_manager"
+const USER_SERVICE := &"gs_user_manager"
 
 ## Emitted once an avatar is resolved for a player.
 signal avatar_resolved(user_key: String, avatar: GSAvatar)
@@ -35,7 +35,7 @@ signal avatar_refused(user_key: String, reason: String)
 @export var config: GSAvatarConfig = null
 
 ## JSON file layered over the exported defaults. Empty disables the file layer.
-@export var config_file: String = "user://dot_avatar.json"
+@export var config_file: String = "user://gs_avatar.json"
 
 @export var load_layered_config: bool = true
 

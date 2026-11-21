@@ -6,9 +6,9 @@ extends Node
 
 const CHANNEL := "avatar.actions"
 
-const ACTION_EMOTE := &"dot_avatar_emote"
-const ACTION_POSE := &"dot_avatar_pose"
-const ACTION_GESTURE := &"dot_avatar_gesture"
+const ACTION_EMOTE := &"gs_avatar_emote"
+const ACTION_POSE := &"gs_avatar_pose"
+const ACTION_GESTURE := &"gs_avatar_gesture"
 
 ## Kind to input action and default physical key; the site shows the same keys. Pose is Semicolon, not Period, which games use for a team menu.
 const BINDINGS := {

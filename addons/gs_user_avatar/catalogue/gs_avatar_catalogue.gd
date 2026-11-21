@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Turns a part id into something a client can render, through GameSpice Cloud (signed manifests, content hashes).
 ## Duck-typed, never imported: anything with [code]resolve(content_id)[/code] or [code]has(content_id)[/code]
-## found under [code]dot_cloud_client[/code] works; absent it, built-in paths are used.
+## found under [code]gs_cloud_client[/code] works; absent it, built-in paths are used.
 
 ## Emitted when content a part was waiting on has arrived and the part now resolves.
 ## Resolving is synchronous (it happens while dressing a character), so a miss can only say "not yet";
@@ -19,7 +19,7 @@ const CHANNEL := "avatar.catalogue"
 
 ## Registry name GameSpice Cloud publishes itself under.
 ## Kept for [method describe]; fetching goes through [GSContent], the family's one caller for downloadable content.
-const CLOUD_SERVICE := &"dot_cloud_client"
+const CLOUD_SERVICE := &"gs_cloud_client"
 
 ## Where built-in parts live when a part names no content id; the id is appended
 ## ([code]hair_long[/code] -> [code]res://avatars/hair_long.tscn[/code]).
@@ -57,7 +57,7 @@ func _cloud_client() -> Object:
 	_cloud = GSRegistry.get_service(CLOUD_SERVICE)
 
 	if _cloud != null:
-		GSLog.debug(CHANNEL, "resolving avatar content through dot-cloud")
+		GSLog.debug(CHANNEL, "resolving avatar content through gs-cloud")
 
 	return _cloud
 

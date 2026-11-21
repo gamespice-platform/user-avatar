@@ -51,9 +51,9 @@ Tinting uses `set_instance_shader_parameter`, not material swaps. Two players we
 
 ## Coupling: nothing is imported
 
-- **GameSpice Cloud** is found through `GSRegistry` as `dot_cloud_client` and duck-typed on `resolve(content_id)`. Absent, parts naming content are simply unavailable, which is correct: the game did not ship them and nothing can fetch them.
-- **GameSpice User** is found as `dot_user_manager`, and only to keep the profile's avatar digest current. Best-effort: an avatar publish must not fail because a profile write did.
-- **dot-net** is not mentioned anywhere. `GSAvatarSync.write`/`read` take a `Variant` writer and call its methods by name, the same way `GSTransportENet` reaches ENet, because a script that so much as mentions a missing `class_name` fails to parse and takes everything referencing it down too. `FakeWire` in the demo checks that contract without the dependency present.
+- **GameSpice Cloud** is found through `GSRegistry` as `gs_cloud_client` and duck-typed on `resolve(content_id)`. Absent, parts naming content are simply unavailable, which is correct: the game did not ship them and nothing can fetch them.
+- **GameSpice User** is found as `gs_user_manager`, and only to keep the profile's avatar digest current. Best-effort: an avatar publish must not fail because a profile write did.
+- **gs-net** is not mentioned anywhere. `GSAvatarSync.write`/`read` take a `Variant` writer and call its methods by name, the same way `GSTransportENet` reaches ENet, because a script that so much as mentions a missing `class_name` fails to parse and takes everything referencing it down too. `FakeWire` in the demo checks that contract without the dependency present.
 
 ## Using the plan with GameSpice Player Char
 

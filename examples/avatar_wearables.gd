@@ -29,7 +29,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-user-avatar wearables self-test")
+	print("gs-user-avatar wearables self-test")
 	_test_tables()
 	_test_offsets()
 	_test_bones()

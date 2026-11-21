@@ -10,9 +10,9 @@ config_version=5
 
 [application]
 
-config/name="dot-user-avatar"
+config/name="gs-user-avatar"
 config/features=PackedStringArray("4.7")
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/dot_user_avatar/plugin.cfg")
+enabled=PackedStringArray("res://addons/gs_user_avatar/plugin.cfg")

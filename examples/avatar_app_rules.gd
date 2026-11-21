@@ -37,7 +37,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-user-avatar app rules self-test")
+	print("gs-user-avatar app rules self-test")
 	_test_rules_read()
 	_test_actions_follow_switches()
 	_test_equip_cap()

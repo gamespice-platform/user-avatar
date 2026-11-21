@@ -1,6 +1,6 @@
 extends Node
 
-## Exercises everything in dot-user-avatar, offline: `godot --headless --path . res://examples/avatar_demo.tscn`, non-zero on failure.
+## Exercises everything in gs-user-avatar, offline: `godot --headless --path . res://examples/avatar_demo.tscn`, non-zero on failure.
 ## The cases that matter most are where a mistake is a vulnerability: wearing what is not owned, a part in the wrong slot,
 ## an index past the schema's end on the wire, a schema change making saved avatars unloadable.
 
@@ -35,7 +35,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	print("dot-user-avatar self-test")
+	print("gs-user-avatar self-test")
 	print("")
 
 	GSPaths.remove_tree(AVATAR_DIR)

@@ -5,9 +5,9 @@ Player avatars as data, so a dedicated server can check one without ever loading
 ## Install
 
 1. Get [Godot 4.7](https://godotengine.org/download).
-2. Either use [GameSpice Bootstrap](https://github.com/gamespice-platform/bootstrap), which clones every project and links the addons, or copy `addons/dot_user_avatar/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/dot_core/` into your project and enable both in *Project > Project Settings > Plugins*.
+2. Either use [GameSpice Bootstrap](https://github.com/gamespice-platform/bootstrap), which clones every project and links the addons, or copy `addons/gs_user_avatar/` and [GameSpice Core](https://github.com/gamespice-platform/core)'s `addons/gs_core/` into your project and enable both in *Project > Project Settings > Plugins*.
 
-GameSpice Core and [GameSpice Save](https://github.com/gamespice-platform/save) (copy its `addons/dot_save/` beside `dot_core`) are the dependencies. [GameSpice User](https://github.com/gamespice-platform/user), [GameSpice Cloud](https://github.com/gamespice-platform/cloud), [GameSpice Net](https://github.com/gamespice-platform/net) and [GameSpice Server](https://github.com/gamespice-platform/server) work with it, and none is imported.
+GameSpice Core and [GameSpice Save](https://github.com/gamespice-platform/save) (copy its `addons/gs_save/` beside `gs_core`) are the dependencies. [GameSpice User](https://github.com/gamespice-platform/user), [GameSpice Cloud](https://github.com/gamespice-platform/cloud), [GameSpice Net](https://github.com/gamespice-platform/net) and [GameSpice Server](https://github.com/gamespice-platform/server) work with it, and none is imported.
 
 ## Use
 

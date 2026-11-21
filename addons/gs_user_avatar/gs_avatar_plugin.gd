@@ -4,13 +4,13 @@ extends EditorPlugin
 ## Editor entry point for GameSpice User Avatar. Registers inspector types only.
 ## No autoload: a process may run a server and a client at once. [GSAvatarManager] registers in [GSRegistry] instead.
 
-const _ICON := "res://addons/dot_user_avatar/icon_placeholder.svg"
+const _ICON := "res://addons/gs_user_avatar/icon_placeholder.svg"
 
 const _TYPES := [
 	[
 		"GSAvatarManager",
 		"Node",
-		"res://addons/dot_user_avatar/dot_avatar_manager.gd",
+		"res://addons/gs_user_avatar/gs_avatar_manager.gd",
 	],
 ]
 

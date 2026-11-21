@@ -3,7 +3,7 @@ class_name GSAvatarConfig
 extends GSConfig
 
 ## Everything configurable about avatars. Layered like every [GSConfig]: exported
-## defaults, then a JSON file, then [code]DOT_AVATAR_*[/code] environment variables,
+## defaults, then a JSON file, then [code]GS_AVATAR_*[/code] environment variables,
 ## then [code]--avatar-*[/code] arguments.
 
 @export_group("Storage")
@@ -51,7 +51,7 @@ extends GSConfig
 
 
 func env_prefix() -> String:
-	return "DOT_AVATAR_"
+	return "GS_AVATAR_"
 
 
 func cli_prefix() -> String:
