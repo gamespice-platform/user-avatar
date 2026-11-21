@@ -1,8 +1,8 @@
-class_name DotAvatarKey
+class_name GSAvatarKey
 extends RefCounted
 
 ## Whether a string is usable as the key an avatar is filed under.
-## Not [code]DotAvatarKey.is_usable[/code] from GameSpice User: only GameSpice Core is a hard dependency.
+## Not [code]GSAvatarKey.is_usable[/code] from GameSpice User: only GameSpice Core is a hard dependency.
 ## Structural only (no traversal, URL escape or log newline); whether a key is genuine comes from the connect ticket.
 
 ## Shortest key accepted. Below this a key is not plausibly an id at all.
@@ -14,7 +14,7 @@ const MAX_LENGTH := 64
 
 
 func _init() -> void:
-	push_error("DotAvatarKey is a static utility; do not instantiate it.")
+	push_error("GSAvatarKey is a static utility; do not instantiate it.")
 
 
 ## Base64url characters only: letters, digits, dash, underscore.
@@ -38,13 +38,13 @@ static func is_usable(key: String) -> bool:
 	return true
 
 
-## The same check as a [DotResult], for a call site that wants to propagate a reason.
-static func check(key: String) -> DotResult:
+## The same check as a [GSResult], for a call site that wants to propagate a reason.
+static func check(key: String) -> GSResult:
 	if is_usable(key):
-		return DotResult.success(key)
+		return GSResult.success(key)
 
-	return DotResult.fail(
-		DotError.CODE_INVALID,
+	return GSResult.fail(
+		GSError.CODE_INVALID,
 		"That is not a usable player key.",
 		"'%s' (%d characters)" % [key.substr(0, 64), key.length()]
 	)

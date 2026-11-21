@@ -1,4 +1,4 @@
-class_name DotAvatarActions
+class_name GSAvatarActions
 extends RefCounted
 
 ## A player's equipped emotes, poses and gestures as the backbone's `actions` field delivers them,
@@ -39,7 +39,7 @@ const _MAX_CLIP := 64
 var _equipped := {}
 var _cursor := {}
 ## The app's switches; null means every kind is on.
-var rules: DotAvatarAppRules = null
+var rules: GSAvatarAppRules = null
 
 
 func _init() -> void:
@@ -49,8 +49,8 @@ func _init() -> void:
 
 
 ## Every built-in, in table order, as the loadout of somebody who equipped nothing.
-static func defaults() -> DotAvatarActions:
-	var out := DotAvatarActions.new()
+static func defaults() -> GSAvatarActions:
+	var out := GSAvatarActions.new()
 	for id: String in BUILTIN:
 		var kind: StringName = BUILTIN[id]["kind"]
 		out._equipped[kind].append(builtin_entry(id))
@@ -74,18 +74,18 @@ static func builtin_entry(id: String) -> Dictionary:
 ## for this app and is taken as given: a kind the app switched off, or hid every item of, stays empty.
 ## [param max_equipped] is the site's equip cap per kind, 0 = unlimited; a list over it is refused with
 ## [code]quota[/code] naming the kind, never trimmed. [param app_rules] empties every kind the app has off.
-static func from_backbone(actions: Variant, max_equipped: int = 0, app_rules: DotAvatarAppRules = null) -> DotResult:
+static func from_backbone(actions: Variant, max_equipped: int = 0, app_rules: GSAvatarAppRules = null) -> GSResult:
 	if max_equipped < 0:
-		return DotResult.fail(DotError.CODE_INVALID, "max_equipped is negative", str(max_equipped))
+		return GSResult.fail(GSError.CODE_INVALID, "max_equipped is negative", str(max_equipped))
 	if actions == null:
 		var d := defaults()
 		d.rules = app_rules
 		d._apply_rules()
-		return DotResult.success(d)
+		return GSResult.success(d)
 	if not actions is Dictionary:
-		return DotResult.fail(DotError.CODE_PARSE, "avatar actions are not an object")
+		return GSResult.fail(GSError.CODE_PARSE, "avatar actions are not an object")
 
-	var out := DotAvatarActions.new()
+	var out := GSAvatarActions.new()
 	out.rules = app_rules
 	var dropped := 0
 	for kind in KINDS:
@@ -94,8 +94,8 @@ static func from_backbone(actions: Variant, max_equipped: int = 0, app_rules: Do
 			dropped += 1
 			continue
 		if max_equipped > 0 and (rows as Array).size() > max_equipped:
-			return DotResult.fail(
-				DotError.CODE_QUOTA,
+			return GSResult.fail(
+				GSError.CODE_QUOTA,
 				"%d %s entries equipped, the site allows %d (play.avatar.maxActionsEquipped)" % [(rows as Array).size(), kind, max_equipped],
 				String(kind)
 			)
@@ -108,8 +108,8 @@ static func from_backbone(actions: Variant, max_equipped: int = 0, app_rules: Do
 
 	out._apply_rules()
 	if dropped > 0:
-		DotLog.debug(CHANNEL, "dropped %d unusable action entries" % dropped)
-	return DotResult.success(out)
+		GSLog.debug(CHANNEL, "dropped %d unusable action entries" % dropped)
+	return GSResult.success(out)
 
 
 ## Empties every kind the app has switched off.
@@ -138,7 +138,7 @@ static func _read_entry(row: Variant, kind: StringName) -> Dictionary:
 	var content_id: Variant = d.get("contentId")
 	var url: Variant = d.get("fileUrl")
 	var clip: Variant = d.get("clip")
-	if not (content_id is String and DotAvatarContentCache.is_content_id(content_id)):
+	if not (content_id is String and GSAvatarContentCache.is_content_id(content_id)):
 		return {}
 	if not (url is String and _is_file_url(url)):
 		return {}

@@ -1,4 +1,4 @@
-class_name DotAvatarActionInput
+class_name GSAvatarActionInput
 extends Node
 
 ## The emote, pose and gesture keys (`,` `.` `/` by default) and console commands. Each press asks for
@@ -12,15 +12,15 @@ const ACTION_GESTURE := &"dot_avatar_gesture"
 
 ## Kind to input action and default physical key; the site shows the same keys. Pose is Semicolon, not Period, which games use for a team menu.
 const BINDINGS := {
-	DotAvatarActions.EMOTE: {"action": ACTION_EMOTE, "key": KEY_COMMA},
-	DotAvatarActions.POSE: {"action": ACTION_POSE, "key": KEY_SEMICOLON},
-	DotAvatarActions.GESTURE: {"action": ACTION_GESTURE, "key": KEY_SLASH},
+	GSAvatarActions.EMOTE: {"action": ACTION_EMOTE, "key": KEY_COMMA},
+	GSAvatarActions.POSE: {"action": ACTION_POSE, "key": KEY_SEMICOLON},
+	GSAvatarActions.GESTURE: {"action": ACTION_GESTURE, "key": KEY_SLASH},
 }
 
-## One entry of [DotAvatarActions] to play: id, kind, name, builtin, loop, clip, content_id.
+## One entry of [GSAvatarActions] to play: id, kind, name, builtin, loop, clip, content_id.
 signal action_requested(entry: Dictionary)
 
-var actions: DotAvatarActions = DotAvatarActions.defaults()
+var actions: GSAvatarActions = GSAvatarActions.defaults()
 
 ## False while a text field or menu has the keyboard; the game owns that decision.
 var enabled := true
@@ -56,7 +56,7 @@ func request(kind: StringName, id: String = "") -> Dictionary:
 		return {}
 	var entry := actions.next(kind) if id == "" else actions.find(kind, id)
 	if entry.is_empty():
-		DotLog.debug(CHANNEL, "no %s to play%s" % [kind, "" if id == "" else " named " + id])
+		GSLog.debug(CHANNEL, "no %s to play%s" % [kind, "" if id == "" else " named " + id])
 		return {}
 	action_requested.emit(entry)
 	return entry
@@ -75,7 +75,7 @@ func register_console(local: Object) -> void:
 func _console(kind: StringName, args: PackedStringArray) -> Variant:
 	var entry := request(kind, args[0] if args.size() > 0 else "")
 	if entry.is_empty():
-		return DotResult.fail(DotError.CODE_INVALID, "no such %s" % kind)
+		return GSResult.fail(GSError.CODE_INVALID, "no such %s" % kind)
 	return "%s %s" % [kind, entry["id"]]
 
 

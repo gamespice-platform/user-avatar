@@ -1,6 +1,6 @@
 extends Node
 
-## DotAvatarWearables, offline: slot and bone tables, offset clamping, bone resolution across rigs,
+## GSAvatarWearables, offline: slot and bone tables, offset clamping, bone resolution across rigs,
 ## hanging real GLBs from the content cache, and the backbone read.
 ## godot --headless --path . res://examples/avatar_wearables.tscn
 
@@ -13,18 +13,18 @@ var _passed := 0
 var _failed := 0
 
 
-class FakeHttp extends DotHttp:
+class FakeHttp extends GSHttp:
 	var body: Variant = {}
 	var status := 200
 
-	func get_json(_path: String, _headers: Dictionary = {}) -> DotResult:
+	func get_json(_path: String, _headers: Dictionary = {}) -> GSResult:
 		if status != 200:
-			return DotResult.failure(DotError.from_http(status))
-		return DotResult.success(body)
+			return GSResult.failure(GSError.from_http(status))
+		return GSResult.success(body)
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.FATAL)
+	GSLog.set_level(GSLog.Level.FATAL)
 	_run.call_deferred()
 
 
@@ -75,30 +75,30 @@ func _cube() -> Node3D:
 
 func _test_tables() -> void:
 	_section("slots and bones")
-	_check(DotAvatarWearables.SLOT_BONES.size() == 7, "seven slots, as on the site")
-	_check(DotAvatarWearables.is_slot("hat") and not DotAvatarWearables.is_slot("tail"), "is_slot")
-	_check(DotAvatarWearables.bone_allowed("back", "Spine"), "back may hang on Spine")
-	_check(not DotAvatarWearables.bone_allowed("hat", "RightHand"), "a hat may not hang on a hand")
-	var r := DotAvatarWearables.check_row({"slot": "neck", "bone": ""})
+	_check(GSAvatarWearables.SLOT_BONES.size() == 7, "seven slots, as on the site")
+	_check(GSAvatarWearables.is_slot("hat") and not GSAvatarWearables.is_slot("tail"), "is_slot")
+	_check(GSAvatarWearables.bone_allowed("back", "Spine"), "back may hang on Spine")
+	_check(not GSAvatarWearables.bone_allowed("hat", "RightHand"), "a hat may not hang on a hand")
+	var r := GSAvatarWearables.check_row({"slot": "neck", "bone": ""})
 	_check(r.ok and r.value["bone"] == "Neck", "an empty bone takes the slot's default")
-	_check(not DotAvatarWearables.check_row({"slot": "hat", "bone": "LeftHand"}).ok, "a disallowed bone is refused")
-	_check(not DotAvatarWearables.check_row("hat").ok, "a non-object row is refused")
+	_check(not GSAvatarWearables.check_row({"slot": "hat", "bone": "LeftHand"}).ok, "a disallowed bone is refused")
+	_check(not GSAvatarWearables.check_row("hat").ok, "a non-object row is refused")
 	_completed += 1
 
 
 func _test_offsets() -> void:
 	_section("offsets clamp like the site's")
-	var o := DotAvatarWearables.clamp_offset({"position": [9, -9, 0.12345678], "rotation": [720, 0, -45], "scale": 50})
+	var o := GSAvatarWearables.clamp_offset({"position": [9, -9, 0.12345678], "rotation": [720, 0, -45], "scale": 50})
 	_check(o["position"] == Vector3(0.5, -0.5, 0.1235), "position clamps to 0.5 m and four decimals", str(o["position"]))
 	_check(o["rotation"] == Vector3(180, 0, -45), "rotation clamps to 180 degrees", str(o["rotation"]))
 	_check(is_equal_approx(o["scale"], 2.0), "scale clamps to 2")
-	var d := DotAvatarWearables.clamp_offset(null)
+	var d := GSAvatarWearables.clamp_offset(null)
 	_check(d["position"] == Vector3.ZERO and d["rotation"] == Vector3.ZERO and d["scale"] == 1.0, "null is the identity")
-	var bad := DotAvatarWearables.clamp_offset({"position": ["x", NAN, INF], "scale": "big"})
+	var bad := GSAvatarWearables.clamp_offset({"position": ["x", NAN, INF], "scale": "big"})
 	_check(bad["position"] == Vector3(0, 0, 0.5) or bad["position"] == Vector3.ZERO, "strings and NaN become 0", str(bad["position"]))
 	_check(bad["scale"] == 1.0, "a string scale is 1")
-	_check(is_equal_approx(DotAvatarWearables.clamp_offset({"scale": 0.01})["scale"], 0.25), "scale floors at 0.25")
-	var t := DotAvatarWearables.offset_transform({"position": [0, 0.1, 0], "rotation": [0, 90, 0], "scale": 2})
+	_check(is_equal_approx(GSAvatarWearables.clamp_offset({"scale": 0.01})["scale"], 0.25), "scale floors at 0.25")
+	var t := GSAvatarWearables.offset_transform({"position": [0, 0.1, 0], "rotation": [0, 90, 0], "scale": 2})
 	_check(t.origin.is_equal_approx(Vector3(0, 0.1, 0)), "transform origin is the offset")
 	_check(is_equal_approx(t.basis.get_scale().x, 2.0), "transform carries the scale")
 	_check((t.basis.orthonormalized() * Vector3.FORWARD).is_equal_approx(Vector3.LEFT), "rotation is degrees about Y")
@@ -108,17 +108,17 @@ func _test_offsets() -> void:
 func _test_bones() -> void:
 	_section("bone resolution across rigs")
 	var profile := _skeleton(["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head", "RightHand", "LeftHand"])
-	_check(DotAvatarWearables.resolve_bone(profile, "Head") == 5, "profile names resolve directly")
+	_check(GSAvatarWearables.resolve_bone(profile, "Head") == 5, "profile names resolve directly")
 	var figure := _skeleton(["Body", "Hips", "Abdomen", "Torso", "Neck", "Head", "Wrist.R", "Middle1.R", "Middle1.L"])
-	_check(figure.get_bone_name(DotAvatarWearables.resolve_bone(figure, "UpperChest")) == "Torso", "UpperChest falls back to Torso")
-	_check(figure.get_bone_name(DotAvatarWearables.resolve_bone(figure, "RightHand")) == "Wrist.R", "RightHand prefers Wrist.R over a finger")
-	_check(figure.get_bone_name(DotAvatarWearables.resolve_bone(figure, "LeftHand")) == "Middle1.L", "LeftHand falls back to a finger")
-	_check(figure.get_bone_name(DotAvatarWearables.resolve_bone(figure, "Hips")) == "Hips", "the profile name beats an alias")
+	_check(figure.get_bone_name(GSAvatarWearables.resolve_bone(figure, "UpperChest")) == "Torso", "UpperChest falls back to Torso")
+	_check(figure.get_bone_name(GSAvatarWearables.resolve_bone(figure, "RightHand")) == "Wrist.R", "RightHand prefers Wrist.R over a finger")
+	_check(figure.get_bone_name(GSAvatarWearables.resolve_bone(figure, "LeftHand")) == "Middle1.L", "LeftHand falls back to a finger")
+	_check(figure.get_bone_name(GSAvatarWearables.resolve_bone(figure, "Hips")) == "Hips", "the profile name beats an alias")
 	var prefixed := _skeleton(["mixamorig_Hips", "mixamorig_Head", "mixamorig_RightHand"])
-	_check(prefixed.get_bone_name(DotAvatarWearables.resolve_bone(prefixed, "Head")) == "mixamorig_Head", "a rig prefix is ignored")
-	_check(prefixed.get_bone_name(DotAvatarWearables.resolve_bone(prefixed, "RightHand")) == "mixamorig_RightHand", "prefixed hand")
-	_check(DotAvatarWearables.resolve_bone(prefixed, "Neck") == -1, "a missing bone is -1")
-	_check(DotAvatarWearables.resolve_bone(null, "Head") == -1, "no skeleton is -1")
+	_check(prefixed.get_bone_name(GSAvatarWearables.resolve_bone(prefixed, "Head")) == "mixamorig_Head", "a rig prefix is ignored")
+	_check(prefixed.get_bone_name(GSAvatarWearables.resolve_bone(prefixed, "RightHand")) == "mixamorig_RightHand", "prefixed hand")
+	_check(GSAvatarWearables.resolve_bone(prefixed, "Neck") == -1, "a missing bone is -1")
+	_check(GSAvatarWearables.resolve_bone(null, "Head") == -1, "no skeleton is -1")
 	for s in [profile, figure, prefixed]:
 		s.queue_free()
 	_completed += 1
@@ -127,13 +127,13 @@ func _test_bones() -> void:
 func _test_apply() -> void:
 	_section("apply hangs one per slot")
 	var sk := _skeleton(["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head", "RightHand", "LeftHand"])
-	var w := DotAvatarWearables.new()
+	var w := GSAvatarWearables.new()
 	var loads := []
-	w.scene_fn = func(row: Dictionary) -> DotResult:
+	w.scene_fn = func(row: Dictionary) -> GSResult:
 		loads.append(row["id"])
 		if row["id"] == 99:
-			return DotResult.fail(DotError.CODE_INVALID, "not cached")
-		return DotResult.success(_cube())
+			return GSResult.fail(GSError.CODE_INVALID, "not cached")
+		return GSResult.success(_cube())
 	var rows := [
 		{"id": 1, "slot": "hat", "bone": "Head", "offset": {"position": [0, 0.2, 0], "rotation": [0, 0, 0], "scale": 1.5}},
 		{"id": 2, "slot": "hat", "bone": "Head"},
@@ -159,7 +159,7 @@ func _test_apply() -> void:
 	_check(again.ok and again.value == 1 and w.mount_for("hat") == null, "apply replaces what was hung")
 	await get_tree().process_frame
 	_check(sk.get_children().filter(func(n: Node) -> bool: return n.name.begins_with("Wearable_")).size() == 1, "old mounts are freed")
-	var bare := DotAvatarWearables.new()
+	var bare := GSAvatarWearables.new()
 	_check(bare.apply(sk, [{"id": 8, "slot": "hat"}]).value == 0, "no content source hangs nothing")
 	_check(not w.apply(null, rows).ok, "no skeleton fails")
 	sk.queue_free()
@@ -168,9 +168,9 @@ func _test_apply() -> void:
 
 func _test_cache() -> void:
 	_section("real GLBs through the content cache")
-	_check(DotAvatarContentCache.is_content_id("wearable/12/3"), "wearable content ids are accepted")
-	_check(not DotAvatarContentCache.is_content_id("wearable/../3"), "a traversal is refused")
-	var index := DotAvatarContentFetcher.index_library({"wearables": [{"contentId": "wearable/1/1", "url": "https://x/a.glb"}]})
+	_check(GSAvatarContentCache.is_content_id("wearable/12/3"), "wearable content ids are accepted")
+	_check(not GSAvatarContentCache.is_content_id("wearable/../3"), "a traversal is refused")
+	var index := GSAvatarContentFetcher.index_library({"wearables": [{"contentId": "wearable/1/1", "url": "https://x/a.glb"}]})
 	_check(index.has("wearable/1/1"), "the fetcher indexes the library's wearables")
 
 	var doc := GLTFDocument.new()
@@ -181,12 +181,12 @@ func _test_cache() -> void:
 	_check(doc.append_from_scene(src, state) == OK, "a cube exports to glTF")
 	var bytes := doc.generate_buffer(state)
 	src.free()
-	var cache := DotAvatarContentCache.new()
+	var cache := GSAvatarContentCache.new()
 	cache.directory = "user://avatar_wearables_test"
-	var row := {"contentId": "wearable/5/1", "size": bytes.size(), "sha256": DotHash.sha256_bytes(bytes)}
+	var row := {"contentId": "wearable/5/1", "size": bytes.size(), "sha256": GSHash.sha256_bytes(bytes)}
 	_check(cache.store(row, bytes).ok, "the cache keeps a verified wearable")
 	var sk := _skeleton(["Hips", "Head"])
-	var w := DotAvatarWearables.new()
+	var w := GSAvatarWearables.new()
 	w.cache = cache
 	var res := w.apply(sk, [{"id": 5, "slot": "hat", "bone": "Head", "contentId": "wearable/5/1"}])
 	_check(res.ok and res.value == 1, "a cached GLB hangs on the head")
@@ -204,16 +204,16 @@ func _test_read() -> void:
 	var http := FakeHttp.new()
 	add_child(http)
 	http.body = {"actions": {}, "wearables": [{"id": 1, "slot": "hat", "bone": "Head", "contentId": "wearable/1/1"}]}
-	var res: DotResult = await DotAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
+	var res: GSResult = await GSAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
 	_check(res.ok and res.value is Array and res.value.size() == 1, "wearables come back as rows", str(res.value) + (res.error.message if not res.ok else ""))
 	http.body = {"actions": {}}
-	res = await DotAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
+	res = await GSAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
 	_check(res.ok and res.value == [], "an older site without wearables reads as none")
 	http.status = 404
-	res = await DotAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
+	res = await GSAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")
 	_check(res.ok and res.value == null, "no player is null")
 	http.status = 500
-	_check(not (await DotAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")).ok, "a server error fails")
-	_check(not (await DotAvatarSync.fetch_wearables(http, "bad key!")).ok, "a bad key is refused")
+	_check(not (await GSAvatarSync.fetch_wearables(http, "5b487068db25649711f46d")).ok, "a server error fails")
+	_check(not (await GSAvatarSync.fetch_wearables(http, "bad key!")).ok, "a bad key is refused")
 	http.queue_free()
 	_completed += 1

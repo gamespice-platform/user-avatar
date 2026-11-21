@@ -1,5 +1,5 @@
 @tool
-class_name DotAvatarSlot
+class_name GSAvatarSlot
 extends Resource
 
 ## A position on the body that one part occupies: head, hair, torso, legs.
@@ -26,7 +26,7 @@ extends Resource
 @export_range(0, 100, 1) var layer: int = 50
 
 ## Node name under the rig this slot attaches to. Empty means [member id].
-## Not a [DotNodeRef]: a slot is a name looked up under whatever rig the builder is given, and a match has many rigs.
+## Not a [GSNodeRef]: a slot is a name looked up under whatever rig the builder is given, and a match has many rigs.
 @export var attach_to: StringName = &""
 
 
@@ -34,8 +34,8 @@ static func make(
 	p_id: StringName,
 	p_required: bool = false,
 	p_default: StringName = &""
-) -> DotAvatarSlot:
-	var slot := DotAvatarSlot.new()
+) -> GSAvatarSlot:
+	var slot := GSAvatarSlot.new()
 	slot.id = p_id
 	slot.required = p_required
 	slot.default_part = p_default
@@ -46,26 +46,26 @@ func attachment_name() -> StringName:
 	return attach_to if attach_to != &"" else id
 
 
-func validate() -> DotResult:
+func validate() -> GSResult:
 	if id == &"":
-		return DotResult.fail(DotError.CODE_INVALID, "A slot needs an id.")
+		return GSResult.fail(GSError.CODE_INVALID, "A slot needs an id.")
 
 	if required and default_part == &"":
 		# A required slot with no default cannot be repaired, so any document missing it would be refused;
 		# that turns a schema change into every saved avatar becoming invalid, so forbid the configuration.
-		return DotResult.fail(
-			DotError.CODE_INVALID,
+		return GSResult.fail(
+			GSError.CODE_INVALID,
 			"A required slot needs a default part, or an avatar missing it "
 			+ "cannot be repaired.",
 			String(id)
 		)
 
 	if hides.has(id):
-		return DotResult.fail(
-			DotError.CODE_INVALID, "A slot cannot hide itself.", String(id)
+		return GSResult.fail(
+			GSError.CODE_INVALID, "A slot cannot hide itself.", String(id)
 		)
 
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
 func describe() -> Dictionary:
@@ -79,4 +79,4 @@ func describe() -> Dictionary:
 
 
 func _to_string() -> String:
-	return "DotAvatarSlot(%s)" % id
+	return "GSAvatarSlot(%s)" % id

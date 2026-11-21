@@ -1,4 +1,4 @@
-class_name DotAvatarWearables
+class_name GSAvatarWearables
 extends RefCounted
 
 ## Hangs a player's equipped wearables (rigid GLBs) on their figure's bones, one [BoneAttachment3D] per slot.
@@ -37,13 +37,13 @@ const BONE_ALIASES := {
 
 const NODE_PREFIX := "Wearable_"
 
-## Where the files come from: a [DotAvatarContentCache] (anything with [code]load_scene(id)[/code]).
+## Where the files come from: a [GSAvatarContentCache] (anything with [code]load_scene(id)[/code]).
 var cache: Object = null
-## Overrides [member cache]: [code]func(row: Dictionary) -> DotResult[/code] of a [Node3D].
+## Overrides [member cache]: [code]func(row: Dictionary) -> GSResult[/code] of a [Node3D].
 var scene_fn: Callable
 
 ## The app's wearable switch and per-wearable rules; null means everything the site sent may be worn.
-var rules: DotAvatarAppRules = null
+var rules: GSAvatarAppRules = null
 
 var _applied := {}
 
@@ -96,51 +96,51 @@ static func resolve_bone(skeleton: Skeleton3D, bone: String) -> int:
 
 
 ## Checks one wire row; the returned row has a known slot, an allowed bone and a clamped offset.
-static func check_row(row: Variant) -> DotResult:
+static func check_row(row: Variant) -> GSResult:
 	if not row is Dictionary:
-		return DotResult.fail(DotError.CODE_INVALID, "wearable row is not an object")
+		return GSResult.fail(GSError.CODE_INVALID, "wearable row is not an object")
 	var slot := String(row.get("slot", ""))
 	if not is_slot(slot):
-		return DotResult.fail(DotError.CODE_INVALID, "unknown wearable slot", slot)
+		return GSResult.fail(GSError.CODE_INVALID, "unknown wearable slot", slot)
 	var bone := String(row.get("bone", ""))
 	if bone == "":
 		bone = SLOT_BONES[slot][0]
 	if not bone_allowed(slot, bone):
-		return DotResult.fail(DotError.CODE_INVALID, "bone not allowed for slot %s" % slot, bone)
+		return GSResult.fail(GSError.CODE_INVALID, "bone not allowed for slot %s" % slot, bone)
 	var out: Dictionary = (row as Dictionary).duplicate()
 	out["slot"] = slot
 	out["bone"] = bone
 	out["offset"] = clamp_offset(row.get("offset"))
-	return DotResult.success(out)
+	return GSResult.success(out)
 
 
 ## Replaces whatever this hung before with [param rows], at most one per slot (the first wins).
 ## Succeeds with the number hung; a row that cannot be hung is skipped and logged, never fatal.
-func apply(skeleton: Skeleton3D, rows: Array) -> DotResult:
+func apply(skeleton: Skeleton3D, rows: Array) -> GSResult:
 	clear()
 	if skeleton == null or not is_instance_valid(skeleton):
-		return DotResult.fail(DotError.CODE_STATE, "no skeleton to hang wearables on")
+		return GSResult.fail(GSError.CODE_STATE, "no skeleton to hang wearables on")
 	if rules != null and not rules.allows_wearables():
-		DotLog.debug(CHANNEL, "wearables are switched off for this app; none worn")
-		return DotResult.success(0)
+		GSLog.debug(CHANNEL, "wearables are switched off for this app; none worn")
+		return GSResult.success(0)
 	for raw in rows:
 		if rules != null and raw is Dictionary and (raw as Dictionary).has("id") and not rules.allows_wearable(raw["id"]):
-			DotLog.debug(CHANNEL, "wearable %s is switched off for this app; not worn" % str(raw["id"]))
+			GSLog.debug(CHANNEL, "wearable %s is switched off for this app; not worn" % str(raw["id"]))
 			continue
 		var checked := check_row(raw)
 		if not checked.ok:
-			DotLog.warn(CHANNEL, "skipped a wearable: %s" % checked.error.message)
+			GSLog.warn(CHANNEL, "skipped a wearable: %s" % checked.error.message)
 			continue
 		var row: Dictionary = checked.value
 		if _applied.has(row["slot"]):
 			continue
 		var index := resolve_bone(skeleton, row["bone"])
 		if index < 0:
-			DotLog.debug(CHANNEL, "skeleton has no %s bone; %s not worn" % [row["bone"], row["slot"]])
+			GSLog.debug(CHANNEL, "skeleton has no %s bone; %s not worn" % [row["bone"], row["slot"]])
 			continue
 		var scene := _scene_for(row)
 		if not scene.ok:
-			DotLog.warn(CHANNEL, "wearable %s not loaded: %s" % [row.get("contentId", "?"), scene.error.message])
+			GSLog.warn(CHANNEL, "wearable %s not loaded: %s" % [row.get("contentId", "?"), scene.error.message])
 			continue
 		var mount := BoneAttachment3D.new()
 		mount.name = NODE_PREFIX + String(row["slot"])
@@ -150,8 +150,8 @@ func apply(skeleton: Skeleton3D, rows: Array) -> DotResult:
 		model.transform = offset_transform(row["offset"])
 		mount.add_child(model)
 		_applied[row["slot"]] = {"mount": mount, "id": row.get("id"), "bone": mount.bone_name}
-	DotLog.debug(CHANNEL, "hung %d wearable(s)" % _applied.size())
-	return DotResult.success(_applied.size())
+	GSLog.debug(CHANNEL, "hung %d wearable(s)" % _applied.size())
+	return GSResult.success(_applied.size())
 
 
 ## Removes everything [method apply] hung.
@@ -179,20 +179,20 @@ func describe() -> Dictionary:
 	return {"worn": worn, "source": "scene_fn" if scene_fn.is_valid() else ("cache" if cache != null else "none")}
 
 
-func _scene_for(row: Dictionary) -> DotResult:
+func _scene_for(row: Dictionary) -> GSResult:
 	var res: Variant = null
 	if scene_fn.is_valid():
 		res = scene_fn.call(row)
 	elif cache != null and cache.has_method("load_scene"):
 		res = cache.call("load_scene", String(row.get("contentId", "")), String(row.get("sha256", "")))
 	else:
-		return DotResult.fail(DotError.CODE_STATE, "no content source")
-	if not res is DotResult:
-		return DotResult.fail(DotError.CODE_STATE, "content source returned no result")
+		return GSResult.fail(GSError.CODE_STATE, "no content source")
+	if not res is GSResult:
+		return GSResult.fail(GSError.CODE_STATE, "content source returned no result")
 	if res.ok and not res.value is Node3D:
 		if res.value is Node:
 			res.value.free()
-		return DotResult.fail(DotError.CODE_INVALID, "wearable content is not a 3D scene")
+		return GSResult.fail(GSError.CODE_INVALID, "wearable content is not a 3D scene")
 	return res
 
 

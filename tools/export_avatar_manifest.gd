@@ -1,7 +1,7 @@
 @tool
 extends EditorScript
 
-## Exports a [DotAvatarSchema] as a WEB avatar manifest plus one GLB per part.
+## Exports a [GSAvatarSchema] as a WEB avatar manifest plus one GLB per part.
 ## Run from the editor (File -> Run): glTF export needs the editor's [GLTFDocument] importer state, absent in `--headless --script`.
 ## The mapping inverts the website's ([code]docs/avatar-assets.md[/code], [code]~/types/avatar/godot.ts[/code]); change both. Palette and free/paid are TODO in the output, as the schema cannot say.
 
@@ -28,7 +28,7 @@ const DEFAULT_PALETTE := [
 
 
 func _run() -> void:
-	var schema: DotAvatarSchema = load(SCHEMA_PATH)
+	var schema: GSAvatarSchema = load(SCHEMA_PATH)
 
 	if schema == null:
 		push_error("export: no schema at %s" % SCHEMA_PATH)
@@ -61,7 +61,7 @@ func _run() -> void:
 		var options: Array = []
 
 		for candidate in schema.parts_for(slot.id):
-			var part := candidate as DotAvatarPart
+			var part := candidate as GSAvatarPart
 
 						# A retired part must still resolve (documents name it) but not be offered; the web manifest
 						# cannot say "resolvable but unlisted", so it is left out and the backbone's coercion handles the documents.
@@ -129,9 +129,9 @@ func _export_base() -> String:
 
 ## Exports one part, returning its manifest option — or `{}` if it has no scene.
 func _export_part(
-	schema: DotAvatarSchema,
-	slot: DotAvatarSlot,
-	part: DotAvatarPart
+	schema: GSAvatarSchema,
+	slot: GSAvatarSlot,
+	part: GSAvatarPart
 ) -> Dictionary:
 	var option_key := _option_key(slot, part)
 	var scene_path := _scene_for(part)
@@ -162,14 +162,14 @@ func _export_part(
 
 
 func _slot_dict(
-	schema: DotAvatarSchema,
-	slot: DotAvatarSlot,
+	schema: GSAvatarSchema,
+	slot: GSAvatarSlot,
 	options: Array
 ) -> Dictionary:
 	var channels := 0
 
 	for candidate in schema.parts_for(slot.id):
-		channels = maxi(channels, (candidate as DotAvatarPart).colour_channels)
+		channels = maxi(channels, (candidate as GSAvatarPart).colour_channels)
 
 	var default_option := ""
 
@@ -201,7 +201,7 @@ func _slot_dict(
 
 ## The option key for a part, which is its id minus the `slot.` prefix.
 ## The backbone builds ids as `<slot>.<option>`; an id without the prefix is used whole and still round-trips.
-static func _option_key(slot: DotAvatarSlot, part: DotAvatarPart) -> String:
+static func _option_key(slot: GSAvatarSlot, part: GSAvatarPart) -> String:
 	var id := String(part.id)
 	var prefix := "%s." % slot.id
 
@@ -210,7 +210,7 @@ static func _option_key(slot: DotAvatarSlot, part: DotAvatarPart) -> String:
 
 ## Where a part's scene lives.
 ## `content_id` is a dot-cloud address, usable only when it is a `res://` path; else `res://content/avatar/parts/<part id>.tscn`, and a part with neither is reported.
-static func _scene_for(part: DotAvatarPart) -> String:
+static func _scene_for(part: GSAvatarPart) -> String:
 	if part.content_id.begins_with("res://") and ResourceLoader.exists(part.content_id):
 		return part.content_id
 

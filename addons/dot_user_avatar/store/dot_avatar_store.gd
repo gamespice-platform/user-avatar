@@ -1,4 +1,4 @@
-class_name DotAvatarStore
+class_name GSAvatarStore
 extends RefCounted
 
 ## Where avatar documents live, keyed by the player's scoped id.
@@ -11,7 +11,7 @@ var _opened: bool = false
 
 ## Emitted when an attempt [method open] started finishes, for callers that arrived
 ## while it was in flight.
-signal _open_finished(res: DotResult)
+signal _open_finished(res: GSResult)
 
 var _opening: bool = false
 
@@ -21,26 +21,26 @@ var failure_count: int = 0
 
 
 ## Reads one avatar. A successful null means "this player has not made one".
-func _fetch(_user_key: String) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_INTERNAL, "%s does not implement _fetch()." % _store_name()
+func _fetch(_user_key: String) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_INTERNAL, "%s does not implement _fetch()." % _store_name()
 	)
 
 
-func _store(_user_key: String, _avatar: DotAvatar) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_INTERNAL, "%s does not implement _store()." % _store_name()
+func _store(_user_key: String, _avatar: GSAvatar) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_INTERNAL, "%s does not implement _store()." % _store_name()
 	)
 
 
-func _remove(_user_key: String) -> DotResult:
-	return DotResult.fail(
-		DotError.CODE_INTERNAL, "%s does not implement _remove()." % _store_name()
+func _remove(_user_key: String) -> GSResult:
+	return GSResult.fail(
+		GSError.CODE_INTERNAL, "%s does not implement _remove()." % _store_name()
 	)
 
 
-func _open() -> DotResult:
-	return DotResult.success(true)
+func _open() -> GSResult:
+	return GSResult.success(true)
 
 
 func _close() -> void:
@@ -52,17 +52,17 @@ func _writable() -> bool:
 
 
 func _store_name() -> String:
-	return "DotAvatarStore"
+	return "GSAvatarStore"
 
 
-func open() -> DotResult:
+func open() -> GSResult:
 	if _opened:
-		return DotResult.success(true)
+		return GSResult.success(true)
 
 		# One attempt at a time; a second caller waits. _open can suspend and both a manager's _ready and
 		# setup() open the store; overlapping attempts queued the same client onto the root twice.
 	if _opening:
-		var shared: DotResult = await _open_finished
+		var shared: GSResult = await _open_finished
 		return shared
 
 	_opening = true
@@ -94,10 +94,10 @@ func is_writable() -> bool:
 
 ## Reads an avatar, or null when the player has not made one.
 ## The key is checked before any implementation sees it, so a malformed one never reaches a path or URL.
-func fetch(user_key: String) -> DotResult:
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(
-			DotError.CODE_INVALID,
+func fetch(user_key: String) -> GSResult:
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(
+			GSError.CODE_INVALID,
 			"That is not a usable player key.",
 			user_key.substr(0, 64)
 		)
@@ -109,7 +109,7 @@ func fetch(user_key: String) -> DotResult:
 
 	fetch_count += 1
 
-	var res: DotResult = await _fetch(user_key)
+	var res: GSResult = await _fetch(user_key)
 
 	if not res.ok:
 		failure_count += 1
@@ -118,19 +118,19 @@ func fetch(user_key: String) -> DotResult:
 
 
 ## Writes an avatar, validating its structure first.
-## Structure only: entitlements need the schema, which the store lacks; [DotAvatarManager.publish] checks both, and a store pretending to would be a trusted false checkpoint.
-func store(user_key: String, avatar: DotAvatar) -> DotResult:
+## Structure only: entitlements need the schema, which the store lacks; [GSAvatarManager.publish] checks both, and a store pretending to would be a trusted false checkpoint.
+func store(user_key: String, avatar: GSAvatar) -> GSResult:
 	if avatar == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No avatar to store.")
+		return GSResult.fail(GSError.CODE_INVALID, "No avatar to store.")
 
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(
-			DotError.CODE_INVALID, "That is not a usable player key."
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(
+			GSError.CODE_INVALID, "That is not a usable player key."
 		)
 
 	if not _writable():
-		return DotResult.fail(
-			DotError.CODE_FORBIDDEN, "This avatar store is read-only.", _store_name()
+		return GSResult.fail(
+			GSError.CODE_FORBIDDEN, "This avatar store is read-only.", _store_name()
 		)
 
 	var valid := avatar.validate()
@@ -143,7 +143,7 @@ func store(user_key: String, avatar: DotAvatar) -> DotResult:
 		if not opened.ok:
 			return opened
 
-	var res: DotResult = await _store(user_key, avatar)
+	var res: GSResult = await _store(user_key, avatar)
 
 	if res.ok:
 		store_count += 1
@@ -154,15 +154,15 @@ func store(user_key: String, avatar: DotAvatar) -> DotResult:
 	return res
 
 
-func remove(user_key: String) -> DotResult:
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(
-			DotError.CODE_INVALID, "That is not a usable player key."
+func remove(user_key: String) -> GSResult:
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(
+			GSError.CODE_INVALID, "That is not a usable player key."
 		)
 
 	if not _writable():
-		return DotResult.fail(
-			DotError.CODE_FORBIDDEN, "This avatar store is read-only."
+		return GSResult.fail(
+			GSError.CODE_FORBIDDEN, "This avatar store is read-only."
 		)
 
 	if not _opened:
@@ -170,7 +170,7 @@ func remove(user_key: String) -> DotResult:
 		if not opened.ok:
 			return opened
 
-	var res: DotResult = await _remove(user_key)
+	var res: GSResult = await _remove(user_key)
 
 	if not res.ok:
 		failure_count += 1
@@ -181,8 +181,8 @@ func remove(user_key: String) -> DotResult:
 
 ## Logged in the base because every backend's write passes through it, so none can forget it.
 ## ERROR because the avatar had passed validation: this is a player's avatar not persisting. Only write paths; the manager logs failed opens and fetches.
-func _report_write_failure(what: String, user_key: String, res: DotResult) -> void:
-	DotLog.error(CHANNEL, what, {
+func _report_write_failure(what: String, user_key: String, res: GSResult) -> void:
+	GSLog.error(CHANNEL, what, {
 		"store": _store_name(),
 		"key": user_key,
 		"code": res.code(),

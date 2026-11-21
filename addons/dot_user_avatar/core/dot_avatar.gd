@@ -1,5 +1,5 @@
 @tool
-class_name DotAvatar
+class_name GSAvatar
 extends Resource
 
 ## What a player looks like, as data: a schema id, part ids and colours, parts named not embedded.
@@ -7,7 +7,7 @@ extends Resource
 ## Colours are quantised to 8 bits here, not on the wire, so the stale-cache digest matches on every machine.
 
 # No log channel: a value object. validate(), from_dict() and migrate() return a
-# DotResult, and DotAvatarManager -- which knows the player -- logs what it does with one.
+# GSResult, and GSAvatarManager -- which knows the player -- logs what it does with one.
 
 ## Bumped when the stored shape changes. See [method migrate].
 const SCHEMA_VERSION := 1
@@ -19,7 +19,7 @@ const MAX_SLOTS := 24
 ## Longest a slot or part id may be, in characters.
 const MAX_ID_LENGTH := 48
 
-## Colour channels one slot may have. Matches [member DotAvatarPart.colour_channels].
+## Colour channels one slot may have. Matches [member GSAvatarPart.colour_channels].
 const MAX_CHANNELS := 3
 
 ## Which schema this document is written against.
@@ -35,8 +35,8 @@ const MAX_CHANNELS := 3
 @export var colours: Dictionary = {}
 
 
-static func make(p_schema_id: StringName) -> DotAvatar:
-	var a := DotAvatar.new()
+static func make(p_schema_id: StringName) -> GSAvatar:
+	var a := GSAvatar.new()
 	a.schema_id = p_schema_id
 	return a
 
@@ -75,10 +75,10 @@ func colour_of(slot: StringName, channel: int) -> Color:
 
 ## Sets one colour channel, quantised to 8 bits per component.
 ## Quantised here rather than on the wire so a document is byte-identical wherever it was built.
-func set_colour(slot: StringName, channel: int, colour: Color) -> DotResult:
+func set_colour(slot: StringName, channel: int, colour: Color) -> GSResult:
 	if channel < 0 or channel >= MAX_CHANNELS:
-		return DotResult.fail(
-			DotError.CODE_INVALID,
+		return GSResult.fail(
+			GSError.CODE_INVALID,
 			"A colour channel must be 0 to %d." % (MAX_CHANNELS - 1),
 			"got %d" % channel
 		)
@@ -91,7 +91,7 @@ func set_colour(slot: StringName, channel: int, colour: Color) -> DotResult:
 	list[channel] = quantise(colour)
 	colours[slot] = list
 
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
 ## Rounds a colour to what the wire format carries: 8 bits per component, no alpha.
@@ -121,21 +121,21 @@ func filled_slots() -> Array[StringName]:
 
 
 ## Structural checks that need no schema: shape, bounds, and nothing else.
-## Separate from [method DotAvatarSchema.validate] so a server can refuse a malformed document before looking any slot up.
-func validate() -> DotResult:
+## Separate from [method GSAvatarSchema.validate] so a server can refuse a malformed document before looking any slot up.
+func validate() -> GSResult:
 	if schema_id == &"":
-		return DotResult.fail(
-			DotError.CODE_INVALID, "An avatar must name a schema."
+		return GSResult.fail(
+			GSError.CODE_INVALID, "An avatar must name a schema."
 		)
 
 	if String(schema_id).length() > MAX_ID_LENGTH:
-		return DotResult.fail(
-			DotError.CODE_INVALID, "That schema id is too long."
+		return GSResult.fail(
+			GSError.CODE_INVALID, "That schema id is too long."
 		)
 
 	if parts.size() > MAX_SLOTS:
-		return DotResult.fail(
-			DotError.CODE_QUOTA,
+		return GSResult.fail(
+			GSError.CODE_QUOTA,
 			"An avatar may fill at most %d slots." % MAX_SLOTS,
 			"got %d" % parts.size()
 		)
@@ -145,15 +145,15 @@ func validate() -> DotResult:
 		var part_name := str(parts[slot])
 
 		if slot_name.length() > MAX_ID_LENGTH:
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"A slot id is too long.",
 				slot_name.substr(0, 64)
 			)
 
 		if part_name.length() > MAX_ID_LENGTH:
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"A part id is too long.",
 				part_name.substr(0, 64)
 			)
@@ -162,8 +162,8 @@ func validate() -> DotResult:
 			# Ids become dictionary keys, log lines and, on the client, part of a
 			# content lookup. A control character or a path separator in one is
 			# never legitimate and is exactly what an attacker reaches for.
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"An id contains characters that are not allowed.",
 				"%s / %s" % [slot_name.substr(0, 32), part_name.substr(0, 32)]
 			)
@@ -171,8 +171,8 @@ func validate() -> DotResult:
 	# Colours for a slot that holds nothing are not an error worth refusing over —
 	# they are what is left after changing a part — but they must not accumulate.
 	if colours.size() > MAX_SLOTS:
-		return DotResult.fail(
-			DotError.CODE_QUOTA,
+		return GSResult.fail(
+			GSError.CODE_QUOTA,
 			"An avatar carries colours for more slots than it can fill."
 		)
 
@@ -180,28 +180,28 @@ func validate() -> DotResult:
 		var list: Variant = colours[slot]
 
 		if not (list is Array):
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"Colours for a slot must be a list.",
 				str(slot)
 			)
 
 		if (list as Array).size() > MAX_CHANNELS:
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"A slot may have at most %d colour channels." % MAX_CHANNELS,
 				"%s has %d" % [str(slot), (list as Array).size()]
 			)
 
 		for entry in (list as Array):
 			if not (entry is Color):
-				return DotResult.fail(
-					DotError.CODE_INVALID,
+				return GSResult.fail(
+					GSError.CODE_INVALID,
 					"A colour channel is not a colour.",
 					str(slot)
 				)
 
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
 ## Ids are ASCII letters, digits, underscore, dash and dot.
@@ -242,10 +242,10 @@ func digest() -> String:
 		parts_out.append("%s=%s:%s" % [slot, part_in(slot), ",".join(channels)])
 
 	var canonical := "%s|%d|%s" % [schema_id, version, ";".join(parts_out)]
-	return DotHash.sha256_text(canonical).substr(0, 16)
+	return GSHash.sha256_text(canonical).substr(0, 16)
 
 
-func equals(other: DotAvatar) -> bool:
+func equals(other: GSAvatar) -> bool:
 	return other != null and digest() == other.digest()
 
 
@@ -272,8 +272,8 @@ func to_dict() -> Dictionary:
 
 ## Rebuilds an avatar from stored or received data.
 ## Every field is read defensively and the result validated: hand-edited files, older builds and hostile payloads all arrive here.
-static func from_dict(data: Dictionary) -> DotResult:
-	var a := DotAvatar.new()
+static func from_dict(data: Dictionary) -> GSResult:
+	var a := GSAvatar.new()
 
 	a.version = int(data.get("version", 0))
 	a.schema_id = StringName(str(data.get("schema_id", "")))
@@ -289,8 +289,8 @@ static func from_dict(data: Dictionary) -> DotResult:
 		for slot in (raw_parts as Dictionary):
 			seen += 1
 			if seen > MAX_SLOTS:
-				return DotResult.fail(
-					DotError.CODE_QUOTA,
+				return GSResult.fail(
+					GSError.CODE_QUOTA,
 					"That avatar fills more slots than are allowed.",
 					"stopped at %d" % MAX_SLOTS
 				)
@@ -306,8 +306,8 @@ static func from_dict(data: Dictionary) -> DotResult:
 		for slot in (raw_colours as Dictionary):
 			seen_colours += 1
 			if seen_colours > MAX_SLOTS:
-				return DotResult.fail(
-					DotError.CODE_QUOTA,
+				return GSResult.fail(
+					GSError.CODE_QUOTA,
 					"That avatar carries colours for more slots than are allowed."
 				)
 
@@ -333,27 +333,27 @@ static func from_dict(data: Dictionary) -> DotResult:
 	if not valid.ok:
 		return valid.wrap("That avatar document is not usable.")
 
-	return DotResult.success(a)
+	return GSResult.success(a)
 
 
 ## Brings an older document up to the current format.
-func migrate() -> DotResult:
+func migrate() -> GSResult:
 	if version > SCHEMA_VERSION:
 		# Written by a newer build. Refusing beats silently dropping fields we do not
 		# understand and then writing it back without them.
-		return DotResult.fail(
-			DotError.CODE_VERSION,
+		return GSResult.fail(
+			GSError.CODE_VERSION,
 			"That avatar was made by a newer version.",
 			"document v%d, this build understands v%d" % [version, SCHEMA_VERSION]
 		)
 
 	version = SCHEMA_VERSION
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
-func duplicate_avatar() -> DotAvatar:
+func duplicate_avatar() -> GSAvatar:
 	var rebuilt := from_dict(to_dict())
-	return rebuilt.value if rebuilt.ok else DotAvatar.make(schema_id)
+	return rebuilt.value if rebuilt.ok else GSAvatar.make(schema_id)
 
 
 func describe() -> Dictionary:
@@ -366,4 +366,4 @@ func describe() -> Dictionary:
 
 
 func _to_string() -> String:
-	return "DotAvatar(%s, %d slots, %s)" % [schema_id, parts.size(), digest()]
+	return "GSAvatar(%s, %d slots, %s)" % [schema_id, parts.size(), digest()]

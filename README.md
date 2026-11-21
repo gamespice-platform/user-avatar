@@ -12,7 +12,7 @@ GameSpice Core and [GameSpice Save](https://github.com/gamespice-platform/save) 
 ## Use
 
 ```gdscript
-var avatars := DotAvatarManager.new()
+var avatars := GSAvatarManager.new()
 avatars.schema = preload("res://avatars/humanoid.tres")
 add_child(avatars)
 
@@ -28,7 +28,7 @@ if not published.ok:
 An avatar names its parts rather than embedding them:
 
 ```gdscript
-var a := DotAvatar.make(&"humanoid")
+var a := GSAvatar.make(&"humanoid")
 a.set_part(&"hair", &"hair_long")
 a.set_colour(&"hair", 0, Color("6b4423"))
 ```
@@ -39,17 +39,17 @@ Validation answers four questions from ids alone: does the slot exist, does the 
 
 | Class | What it is |
 | --- | --- |
-| `DotAvatar` | The document: versioned, with a stable digest. |
-| `DotAvatarSchema` | Slots, parts, and the `validate` and `conform` pair. |
-| `DotAvatarSlot`, `DotAvatarPart` | What a game defines: layers, defaults, fallbacks, entitlement. |
-| `DotAvatarEntitlements` | What one player may wear. Owns nothing by default. |
-| `DotAvatarCatalogue` | Part id to content, through GameSpice Cloud when it is installed. |
-| `DotAvatarBuilder` | Plan (pure) and apply (touches nodes). |
-| `DotAvatarSync` | Bit-packed wire format and the back end endpoints. |
-| `DotAvatarStore` | Where documents live: memory, JSON files or a back end. |
-| `DotAvatarActions`, `DotAvatarActionInput` | A player's equipped emotes, poses and gestures, a starter set, and the keys (`,` `;` `/` by default, rebindable) and console commands that play them. |
-| `DotAvatarContentCache` | Uploaded avatar and action GLBs, kept by content id after a size and hash check. |
-| `DotAvatarManager` | Resolve, conform, validate, publish, cache, rate-limit. |
+| `GSAvatar` | The document: versioned, with a stable digest. |
+| `GSAvatarSchema` | Slots, parts, and the `validate` and `conform` pair. |
+| `GSAvatarSlot`, `GSAvatarPart` | What a game defines: layers, defaults, fallbacks, entitlement. |
+| `GSAvatarEntitlements` | What one player may wear. Owns nothing by default. |
+| `GSAvatarCatalogue` | Part id to content, through GameSpice Cloud when it is installed. |
+| `GSAvatarBuilder` | Plan (pure) and apply (touches nodes). |
+| `GSAvatarSync` | Bit-packed wire format and the back end endpoints. |
+| `GSAvatarStore` | Where documents live: memory, JSON files or a back end. |
+| `GSAvatarActions`, `GSAvatarActionInput` | A player's equipped emotes, poses and gestures, a starter set, and the keys (`,` `;` `/` by default, rebindable) and console commands that play them. |
+| `GSAvatarContentCache` | Uploaded avatar and action GLBs, kept by content id after a size and hash check. |
+| `GSAvatarManager` | Resolve, conform, validate, publish, cache, rate-limit. |
 
 ## Avatars that follow a player between servers
 
@@ -74,7 +74,7 @@ The protocol is `GET`, `PUT` and `DELETE /user/{key}/avatar`, plus a public `GET
 
 ## Entitlements
 
-`DotAvatarEntitlements` is a set of part ids. Where they come from (a purchase, a season pass, a site group) is the game's business. A player owns nothing by default; a part is wearable only if it is marked free or is in the set. `enforce_entitlements` can be turned off for a creator sandbox, and warns loudly at startup when it is.
+`GSAvatarEntitlements` is a set of part ids. Where they come from (a purchase, a season pass, a site group) is the game's business. A player owns nothing by default; a part is wearable only if it is marked free or is in the set. `enforce_entitlements` can be turned off for a creator sandbox, and warns loudly at startup when it is.
 
 ## Testing
 

@@ -1,12 +1,12 @@
-class_name DotAvatarSync
+class_name GSAvatarSync
 extends RefCounted
 
 ## Moving avatars between machines: the wire format, and the backbone endpoints.
-## GameSpice Net is not imported: a script naming a class the project lacks fails to parse, so writer and reader are typed [Variant] and called by name, as [code]DotTransportENet[/code] reaches ENet.
+## GameSpice Net is not imported: a script naming a class the project lacks fails to parse, so writer and reader are typed [Variant] and called by name, as [code]GSTransportENet[/code] reaches ENet.
 ## An avatar changes only in the editor, so it travels once on join; every client needs continuously only the 16-character digest.
 
 # No log channel: a static codec that logged would write a line per hostile packet with nothing to name;
-# the helpers' only caller is DotAvatarStoreBackbone, whose store base logs failures with the key.
+# the helpers' only caller is GSAvatarStoreBackbone, whose store base logs failures with the key.
 
 ## Bits for the slot count in a packed document.
 const COUNT_BITS := 5
@@ -22,12 +22,12 @@ const COLOUR_BITS := 8
 ## Packs an avatar as indices into [param schema].
 ## Both peers hold the same schema (it is content); a mismatch is caught by the digest [method write] emits, not a plausible wrong avatar.
 static func write(
-	avatar: DotAvatar,
-	schema: DotAvatarSchema,
+	avatar: GSAvatar,
+	schema: GSAvatarSchema,
 	writer: Variant
-) -> DotResult:
+) -> GSResult:
 	if avatar == null or schema == null:
-		return DotResult.fail(DotError.CODE_INVALID, "Nothing to write.")
+		return GSResult.fail(GSError.CODE_INVALID, "Nothing to write.")
 
 	var slots := schema.ordered_slots()
 	var slot_index := {}
@@ -50,8 +50,8 @@ static func write(
 			writable.append(slot_id)
 
 	if writable.size() >= (1 << COUNT_BITS):
-		return DotResult.fail(
-			DotError.CODE_QUOTA,
+		return GSResult.fail(
+			GSError.CODE_QUOTA,
 			"That avatar fills more slots than the wire format carries.",
 			"%d, maximum %d" % [writable.size(), (1 << COUNT_BITS) - 1]
 		)
@@ -71,23 +71,23 @@ static func write(
 			writer.write_uint(int(roundf(c.g * 255.0)), COLOUR_BITS)
 			writer.write_uint(int(roundf(c.b * 255.0)), COLOUR_BITS)
 
-	return DotResult.success(writable.size())
+	return GSResult.success(writable.size())
 
 
 ## Reads an avatar back. Every index is checked against the schema.
 ## It arrived from another machine: an out-of-range index is refused, not clamped, which would dress the player in the boundary part.
-static func read(schema: DotAvatarSchema, reader: Variant) -> DotResult:
+static func read(schema: GSAvatarSchema, reader: Variant) -> GSResult:
 	if schema == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No schema to read against.")
+		return GSResult.fail(GSError.CODE_INVALID, "No schema to read against.")
 
 	var slots := schema.ordered_slots()
-	var avatar := DotAvatar.make(schema.id)
+	var avatar := GSAvatar.make(schema.id)
 
 	var count: int = reader.read_uint(COUNT_BITS)
 
-	if count > DotAvatar.MAX_SLOTS:
-		return DotResult.fail(
-			DotError.CODE_QUOTA,
+	if count > GSAvatar.MAX_SLOTS:
+		return GSResult.fail(
+			GSError.CODE_QUOTA,
 			"That avatar claims more slots than are allowed.",
 			"%d" % count
 		)
@@ -97,15 +97,15 @@ static func read(schema: DotAvatarSchema, reader: Variant) -> DotResult:
 		var part_i: int = reader.read_uint(INDEX_BITS)
 
 		if slot_i >= slots.size():
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"That avatar names a slot this schema does not have.",
 				"index %d of %d" % [slot_i, slots.size()]
 			)
 
 		if part_i >= schema.parts.size():
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"That avatar names a part this schema does not have.",
 				"index %d of %d" % [part_i, schema.parts.size()]
 			)
@@ -114,17 +114,17 @@ static func read(schema: DotAvatarSchema, reader: Variant) -> DotResult:
 		var part := schema.parts[part_i]
 
 		if part == null:
-			return DotResult.fail(
-				DotError.CODE_INVALID, "That avatar names an empty part slot."
+			return GSResult.fail(
+				GSError.CODE_INVALID, "That avatar names an empty part slot."
 			)
 
 		avatar.set_part(slot.id, part.id)
 
 		var channels: int = reader.read_uint(2)
 
-		if channels > DotAvatar.MAX_CHANNELS:
-			return DotResult.fail(
-				DotError.CODE_INVALID,
+		if channels > GSAvatar.MAX_CHANNELS:
+			return GSResult.fail(
+				GSError.CODE_INVALID,
 				"That avatar claims more colour channels than are allowed.",
 				"%d" % channels
 			)
@@ -140,32 +140,32 @@ static func read(schema: DotAvatarSchema, reader: Variant) -> DotResult:
 				Color(r / 255.0, g / 255.0, b / 255.0)
 			)
 
-	return DotResult.success(avatar)
+	return GSResult.success(avatar)
 
 
 ## Bits a document of [param slots] slots costs, worst case.
 static func estimated_bits(slots: int) -> int:
 	return COUNT_BITS + slots * (
-		INDEX_BITS * 2 + 2 + DotAvatar.MAX_CHANNELS * COLOUR_BITS * 3
+		INDEX_BITS * 2 + 2 + GSAvatar.MAX_CHANNELS * COLOUR_BITS * 3
 	)
 
 
 ## Fetches a player's avatar over the open HTTP protocol.
-## [param http] is a [DotHttp], a parameter so a caller can share one client, retry policy and pool across backbone calls.
+## [param http] is a [GSHttp], a parameter so a caller can share one client, retry policy and pool across backbone calls.
 static func fetch(
-	http: DotHttp,
+	http: GSHttp,
 	user_key: String,
 	headers: Dictionary = {}
-) -> DotResult:
+) -> GSResult:
 	if http == null:
-		return DotResult.fail(DotError.CODE_STATE, "No HTTP client.")
+		return GSResult.fail(GSError.CODE_STATE, "No HTTP client.")
 
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(
-			DotError.CODE_INVALID, "That is not a usable player key."
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(
+			GSError.CODE_INVALID, "That is not a usable player key."
 		)
 
-	var res: DotResult = await http.get_json(
+	var res: GSResult = await http.get_json(
 		"/user/%s/avatar" % user_key.uri_encode(), headers
 	)
 
@@ -173,14 +173,14 @@ static func fetch(
 		# A player who has not made one yet is the common case on a platform that
 		# has just launched, so it is not an error.
 		if res.error != null and res.error.http_status == 404:
-			return DotResult.success(null)
+			return GSResult.success(null)
 		return res.wrap("Could not read the avatar.")
 
 	var body: Variant = res.value
 
 	if not (body is Dictionary):
-		return DotResult.fail(
-			DotError.CODE_PARSE, "The backbone returned something that is not an avatar."
+		return GSResult.fail(
+			GSError.CODE_PARSE, "The backbone returned something that is not an avatar."
 		)
 
 	var data := body as Dictionary
@@ -188,61 +188,61 @@ static func fetch(
 		# The site answers every member; a never-saved one gets its default with `saved: false`.
 		# Read as theirs, it made every such member the same person in every game. Unsaved is no avatar.
 	if data.get("saved", true) == false:
-		return DotResult.success(null)
+		return GSResult.success(null)
 
 	if data.has("avatar") and data["avatar"] is Dictionary:
 		data = data["avatar"] as Dictionary
 
-	return DotAvatar.from_dict(data)
+	return GSAvatar.from_dict(data)
 
 
 ## The [code]actions[/code] of the same read (equipped emotes, poses, gestures by key), for
-## [code]DotAvatarActions.from_backbone[/code]. Success value is null when the member has no
+## [code]GSAvatarActions.from_backbone[/code]. Success value is null when the member has no
 ## avatar read or the backbone predates actions: the caller then plays the starter set.
-static func fetch_actions(http: DotHttp, user_key: String, headers: Dictionary = {}) -> DotResult:
+static func fetch_actions(http: GSHttp, user_key: String, headers: Dictionary = {}) -> GSResult:
 	if http == null:
-		return DotResult.fail(DotError.CODE_STATE, "No HTTP client.")
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(DotError.CODE_INVALID, "That is not a usable player key.")
-	var res: DotResult = await http.get_json("/user/%s/avatar" % user_key.uri_encode(), headers)
+		return GSResult.fail(GSError.CODE_STATE, "No HTTP client.")
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(GSError.CODE_INVALID, "That is not a usable player key.")
+	var res: GSResult = await http.get_json("/user/%s/avatar" % user_key.uri_encode(), headers)
 	if not res.ok:
 		if res.error != null and res.error.http_status == 404:
-			return DotResult.success(null)
+			return GSResult.success(null)
 		return res.wrap("Could not read the avatar actions.")
 	var actions: Variant = (res.value as Dictionary).get("actions") if res.value is Dictionary else null
-	return DotResult.success(actions if actions is Dictionary else null)
+	return GSResult.success(actions if actions is Dictionary else null)
 
 
-## The read's equipped wearables (wire rows for [DotAvatarWearables]), [] when none, null for no player.
-static func fetch_wearables(http: DotHttp, user_key: String, headers: Dictionary = {}) -> DotResult:
+## The read's equipped wearables (wire rows for [GSAvatarWearables]), [] when none, null for no player.
+static func fetch_wearables(http: GSHttp, user_key: String, headers: Dictionary = {}) -> GSResult:
 	if http == null:
-		return DotResult.fail(DotError.CODE_STATE, "No HTTP client.")
-	if not DotAvatarKey.is_usable(user_key):
-		return DotResult.fail(DotError.CODE_INVALID, "That is not a usable player key.")
-	var res: DotResult = await http.get_json("/user/%s/avatar" % user_key.uri_encode(), headers)
+		return GSResult.fail(GSError.CODE_STATE, "No HTTP client.")
+	if not GSAvatarKey.is_usable(user_key):
+		return GSResult.fail(GSError.CODE_INVALID, "That is not a usable player key.")
+	var res: GSResult = await http.get_json("/user/%s/avatar" % user_key.uri_encode(), headers)
 	if not res.ok:
 		if res.error != null and res.error.http_status == 404:
-			return DotResult.success(null)
+			return GSResult.success(null)
 		return res.wrap("Could not read the avatar wearables.")
 	var rows: Variant = (res.value as Dictionary).get("wearables") if res.value is Dictionary else null
-	return DotResult.success(rows if rows is Array else [])
+	return GSResult.success(rows if rows is Array else [])
 
 
 ## Publishes a player's avatar.
 ## The backbone validates too: neither a client nor a server acting for a player is the authority.
 ## [param extra] is merged into the body: replay fields (Unix-SECONDS `ts`, random `nonce`), not part of the document.
 static func publish(
-	http: DotHttp,
+	http: GSHttp,
 	user_key: String,
-	avatar: DotAvatar,
+	avatar: GSAvatar,
 	headers: Dictionary = {},
 	extra: Dictionary = {}
-) -> DotResult:
+) -> GSResult:
 	if http == null:
-		return DotResult.fail(DotError.CODE_STATE, "No HTTP client.")
+		return GSResult.fail(GSError.CODE_STATE, "No HTTP client.")
 
 	if avatar == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No avatar to publish.")
+		return GSResult.fail(GSError.CODE_INVALID, "No avatar to publish.")
 
 	var structural := avatar.validate()
 
@@ -254,7 +254,7 @@ static func publish(
 	for key in extra:
 		body[key] = extra[key]
 
-	var res: DotResult = await http.put_json(
+	var res: GSResult = await http.put_json(
 		"/user/%s/avatar" % user_key.uri_encode(), body, headers
 	)
 
@@ -262,12 +262,12 @@ static func publish(
 		return res.wrap("Could not publish the avatar.")
 
 	# The backbone's digest when it reported one, ours otherwise: a different digest from the same document
-	# is a serious fault that returning ours would hide. The caller compares; see DotAvatarStoreBackbone._store.
+	# is a serious fault that returning ours would hide. The caller compares; see GSAvatarStoreBackbone._store.
 	var answer: Variant = res.value
 
 	if answer is Dictionary and (answer as Dictionary).has("digest"):
 		var reported := str((answer as Dictionary)["digest"])
 		if reported != "":
-			return DotResult.success(reported)
+			return GSResult.success(reported)
 
-	return DotResult.success(avatar.digest())
+	return GSResult.success(avatar.digest())

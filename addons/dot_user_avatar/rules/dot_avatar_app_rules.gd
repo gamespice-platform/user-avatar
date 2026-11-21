@@ -1,4 +1,4 @@
-class_name DotAvatarAppRules
+class_name GSAvatarAppRules
 extends RefCounted
 
 ## What one app (game) allows of avatar actions and wearables: the site's per-app switches and per-item rules.
@@ -30,20 +30,20 @@ var _wearable_rules := {}
 
 ## Reads the site's settings document (the app avatar settings, or the avatar-rules read). Unknown keys are
 ## ignored; a key of the wrong type is [code]parse[/code] (fail loudly rather than guess "on").
-static func from_dict(d: Variant, app_id_: int = 0) -> DotResult:
+static func from_dict(d: Variant, app_id_: int = 0) -> GSResult:
 	if d == null:
-		var plain := DotAvatarAppRules.new()
+		var plain := GSAvatarAppRules.new()
 		plain.app_id = app_id_
-		return DotResult.success(plain)
+		return GSResult.success(plain)
 	if not d is Dictionary:
-		return DotResult.fail(DotError.CODE_PARSE, "avatar rules are not an object")
-	var out := DotAvatarAppRules.new()
+		return GSResult.fail(GSError.CODE_PARSE, "avatar rules are not an object")
+	var out := GSAvatarAppRules.new()
 	out.app_id = app_id_
 	var src: Dictionary = d
 	for key: String in ["actionsEnabled", "wearablesEnabled"]:
 		if src.has(key):
 			if not src[key] is bool:
-				return DotResult.fail(DotError.CODE_PARSE, "avatar rule %s is not a boolean" % key)
+				return GSResult.fail(GSError.CODE_PARSE, "avatar rule %s is not a boolean" % key)
 			if key == "actionsEnabled":
 				out.actions_enabled = src[key]
 			else:
@@ -52,20 +52,20 @@ static func from_dict(d: Variant, app_id_: int = 0) -> DotResult:
 		var key: String = KIND_SETTING[kind]
 		if src.has(key):
 			if not src[key] is bool:
-				return DotResult.fail(DotError.CODE_PARSE, "avatar rule %s is not a boolean" % key)
+				return GSResult.fail(GSError.CODE_PARSE, "avatar rule %s is not a boolean" % key)
 			out._kind_enabled[kind] = src[key]
 	var rules: Variant = src.get("rules", [])
 	if not rules is Array:
-		return DotResult.fail(DotError.CODE_PARSE, "avatar rules list is not an array")
+		return GSResult.fail(GSError.CODE_PARSE, "avatar rules list is not an array")
 	for row: Variant in rules:
 		if not row is Dictionary:
-			return DotResult.fail(DotError.CODE_PARSE, "an avatar rule row is not an object")
+			return GSResult.fail(GSError.CODE_PARSE, "an avatar rule row is not an object")
 		if String(row.get("targetKind", "")) != "WEARABLE":
 			continue
 		if not row.get("enabled") is bool:
-			return DotResult.fail(DotError.CODE_PARSE, "a wearable rule has no boolean enabled")
+			return GSResult.fail(GSError.CODE_PARSE, "a wearable rule has no boolean enabled")
 		out._wearable_rules[str(row.get("targetId", ""))] = row["enabled"]
-	return DotResult.success(out)
+	return GSResult.success(out)
 
 
 ## Whether the app offers this action kind: the master switch on and the kind's own switch on.

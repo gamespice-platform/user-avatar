@@ -1,4 +1,4 @@
-class_name DotAvatarContentCache
+class_name GSAvatarContentCache
 extends RefCounted
 
 ## Uploaded avatar, action and wearable GLBs on disk, keyed by content id (`avatar|action|wearable/<id>/<version>`),
@@ -63,7 +63,7 @@ func has(row: Dictionary) -> bool:
 	var path := path_for(String(row.get("contentId", "")))
 	if path == "" or not FileAccess.file_exists(path):
 		return false
-	if DotPaths.file_size(path) != int(row.get("size", -1)):
+	if GSPaths.file_size(path) != int(row.get("size", -1)):
 		return false
 	return _verify(path, String(row.get("sha256", "")).to_lower())
 
@@ -73,8 +73,8 @@ func _verify(path: String, sha: String) -> bool:
 		return false
 	if _verified.get(path, "") == sha:
 		return true
-	if DotHash.sha256_bytes(FileAccess.get_file_as_bytes(path)) != sha:
-		DotLog.warn(CHANNEL, "kept avatar content failed its hash; removed", {"path": path})
+	if GSHash.sha256_bytes(FileAccess.get_file_as_bytes(path)) != sha:
+		GSLog.warn(CHANNEL, "kept avatar content failed its hash; removed", {"path": path})
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 		var _e := _verified.erase(path)
 		return false
@@ -85,39 +85,39 @@ func _verify(path: String, sha: String) -> bool:
 
 
 ## Keeps [param bytes] for [param row] after checking id, size, sha256 and the GLB magic.
-func store(row: Dictionary, bytes: PackedByteArray) -> DotResult:
+func store(row: Dictionary, bytes: PackedByteArray) -> GSResult:
 	var content_id := String(row.get("contentId", ""))
 	var path := path_for(content_id)
 	if path == "":
-		return DotResult.fail(DotError.CODE_INVALID, "malformed avatar content id", content_id)
+		return GSResult.fail(GSError.CODE_INVALID, "malformed avatar content id", content_id)
 	if bytes.size() > MAX_BYTES or bytes.size() != int(row.get("size", -1)):
-		return DotResult.fail(DotError.CODE_INTEGRITY, "avatar content has the wrong size", content_id)
-	if DotHash.sha256_bytes(bytes) != String(row.get("sha256", "")).to_lower():
-		return DotResult.fail(DotError.CODE_INTEGRITY, "avatar content hash mismatch", content_id)
+		return GSResult.fail(GSError.CODE_INTEGRITY, "avatar content has the wrong size", content_id)
+	if GSHash.sha256_bytes(bytes) != String(row.get("sha256", "")).to_lower():
+		return GSResult.fail(GSError.CODE_INTEGRITY, "avatar content hash mismatch", content_id)
 	if bytes.size() < 4 or bytes.slice(0, 4).get_string_from_ascii() != "glTF":
-		return DotResult.fail(DotError.CODE_INVALID, "avatar content is not a binary glTF", content_id)
+		return GSResult.fail(GSError.CODE_INVALID, "avatar content is not a binary glTF", content_id)
 	var safe := check_glb(bytes, content_id.get_slice("/", 0))
 	if not safe.ok:
 		return safe.wrap("avatar content %s" % content_id)
 
-	var written := DotPaths.write_bytes(path, bytes)
+	var written := GSPaths.write_bytes(path, bytes)
 	if not written.ok:
 		return written.wrap("keeping avatar content %s" % content_id)
 	_verified[path] = String(row.get("sha256", "")).to_lower()
-	DotLog.debug(CHANNEL, "kept %s (%s)" % [content_id, DotPaths.format_bytes(bytes.size())])
-	return DotResult.success(path)
+	GSLog.debug(CHANNEL, "kept %s (%s)" % [content_id, GSPaths.format_bytes(bytes.size())])
+	return GSResult.success(path)
 
 
 ## Builds the kept GLB into a scene. The caller owns (and frees) the returned [Node3D]. With
 ## [param sha256], a file not yet checked this session is checked first. Lights and cameras are
 ## dropped from an avatar or action; a wearable carrying one was refused by [method check_glb].
-func load_scene(content_id: String, sha256: String = "") -> DotResult:
+func load_scene(content_id: String, sha256: String = "") -> GSResult:
 	var path := path_for(content_id)
 	if path == "":
-		return DotResult.fail(DotError.CODE_INVALID, "malformed avatar content id", content_id)
+		return GSResult.fail(GSError.CODE_INVALID, "malformed avatar content id", content_id)
 	if sha256 != "" and FileAccess.file_exists(path) and not _verify(path, sha256.to_lower()):
-		return DotResult.fail(DotError.CODE_INTEGRITY, "kept avatar content failed its hash", content_id)
-	var read := DotPaths.read_bytes(path)
+		return GSResult.fail(GSError.CODE_INTEGRITY, "kept avatar content failed its hash", content_id)
+	var read := GSPaths.read_bytes(path)
 	if not read.ok:
 		return read.wrap("loading avatar content %s" % content_id)
 	var safe := check_glb(read.value, content_id.get_slice("/", 0))
@@ -128,22 +128,22 @@ func load_scene(content_id: String, sha256: String = "") -> DotResult:
 	var state := GLTFState.new()
 	var err := doc.append_from_buffer(read.value, "", state)
 	if err != OK:
-		return DotResult.failure(DotError.from_engine(err, "parsing avatar content %s" % content_id))
+		return GSResult.failure(GSError.from_engine(err, "parsing avatar content %s" % content_id))
 	var scene := doc.generate_scene(state)
 	if not scene is Node3D:
 		if scene != null:
 			scene.free()
-		return DotResult.fail(DotError.CODE_INVALID, "avatar content has no 3D scene", content_id)
+		return GSResult.fail(GSError.CODE_INVALID, "avatar content has no 3D scene", content_id)
 	for extra: Node in scene.find_children("*", "Light3D", true, false) + scene.find_children("*", "Camera3D", true, false):
 		extra.get_parent().remove_child(extra)
 		extra.free()
-	return DotResult.success(scene)
+	return GSResult.success(scene)
 
 
 ## Reads a GLB's header and JSON chunk and refuses what [GLTFDocument] should never be handed:
 ## external buffers or images, unlisted extensions, counts past the caps, oversized images, and
 ## for a `wearable` any light or camera.
-static func check_glb(bytes: PackedByteArray, kind: String = "") -> DotResult:
+static func check_glb(bytes: PackedByteArray, kind: String = "") -> GSResult:
 	if bytes.size() < 20 or bytes.slice(0, 4).get_string_from_ascii() != "glTF":
 		return _refuse("not a binary glTF")
 	if bytes.decode_u32(4) != 2 or int(bytes.decode_u32(8)) != bytes.size():
@@ -217,11 +217,11 @@ static func check_glb(bytes: PackedByteArray, kind: String = "") -> DotResult:
 			var side := _image_side(bin.slice(at, mini(bin.size(), at + mini(int(view.get("byteLength", 0)), 65536))))
 			if side < 0 or side > MAX_IMAGE_SIDE:
 				return _refuse("an embedded image that is not PNG or JPEG, or larger than %d px" % MAX_IMAGE_SIDE)
-	return DotResult.success(true)
+	return GSResult.success(true)
 
 
-static func _refuse(why: String) -> DotResult:
-	return DotResult.fail(DotError.CODE_INVALID, "refused a GLB: %s" % why)
+static func _refuse(why: String) -> GSResult:
+	return GSResult.fail(GSError.CODE_INVALID, "refused a GLB: %s" % why)
 
 
 static func _list(d: Variant, key: String) -> Array:

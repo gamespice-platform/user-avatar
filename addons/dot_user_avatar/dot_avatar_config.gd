@@ -1,8 +1,8 @@
 @tool
-class_name DotAvatarConfig
-extends DotConfig
+class_name GSAvatarConfig
+extends GSConfig
 
-## Everything configurable about avatars. Layered like every [DotConfig]: exported
+## Everything configurable about avatars. Layered like every [GSConfig]: exported
 ## defaults, then a JSON file, then [code]DOT_AVATAR_*[/code] environment variables,
 ## then [code]--avatar-*[/code] arguments.
 
@@ -62,37 +62,37 @@ func sensitive_keys() -> PackedStringArray:
 	return PackedStringArray(["backbone_token"])
 
 
-func validate() -> DotResult:
+func validate() -> GSResult:
 	if backend == "backbone":
 		if backbone_url.strip_edges() == "":
-			return DotResult.fail(
-				DotError.CODE_INVALID, "The backbone backend needs backbone_url."
+			return GSResult.fail(
+				GSError.CODE_INVALID, "The backbone backend needs backbone_url."
 			)
 
 		if backbone_token.strip_edges() == "":
 			# Refused here as well as in the store: this runs at startup and the store opens at the first join,
 			# so a misconfigured server would look healthy until somebody tried to play.
-			return DotResult.fail(
-				DotError.CODE_AUTH,
+			return GSResult.fail(
+				GSError.CODE_AUTH,
 				"The backbone backend needs backbone_token.",
 				"a server-scoped credential from the backbone; never a player's"
 			)
 
 	if backend == "local" and directory.strip_edges() == "":
-		return DotResult.fail(
-			DotError.CODE_INVALID, "The local backend needs a directory."
+		return GSResult.fail(
+			GSError.CODE_INVALID, "The local backend needs a directory."
 		)
 
 	if not enforce_entitlements:
 		# Loud, because it is the one setting here that turns off a security control
 		# and the symptom is players wearing things they do not own, which nobody
 		# reports as a bug.
-		DotLog.warn(
+		GSLog.warn(
 			"avatar.config",
 			"enforce_entitlements is off; any avatar will be accepted"
 		)
 
-	return DotResult.success(null)
+	return GSResult.success(null)
 
 
 func describe_summary() -> String:

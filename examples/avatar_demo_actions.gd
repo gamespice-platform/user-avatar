@@ -12,14 +12,14 @@ func _init(host: Node) -> void:
 
 func _test_actions() -> void:
 	h._section("actions: loadout")
-	var d := DotAvatarActions.defaults()
+	var d := GSAvatarActions.defaults()
 	h._check(d.equipped(&"emote").size() == 4 and d.equipped(&"pose").size() == 4 and d.equipped(&"gesture").size() == 5,
 		"the defaults are the whole starter set, by kind")
-	var none := DotAvatarActions.from_backbone(null)
-	h._check(none.ok and (none.value as DotAvatarActions).equipped(&"emote").size() == 4, "no actions field reads as the defaults")
-	h._check(not DotAvatarActions.from_backbone("x").ok, "a non-object is refused")
+	var none := GSAvatarActions.from_backbone(null)
+	h._check(none.ok and (none.value as GSAvatarActions).equipped(&"emote").size() == 4, "no actions field reads as the defaults")
+	h._check(not GSAvatarActions.from_backbone("x").ok, "a non-object is refused")
 
-	var res := DotAvatarActions.from_backbone({
+	var res := GSAvatarActions.from_backbone({
 		"EMOTE": [
 			{"builtin": "dance"},
 			{"builtin": "wave"},
@@ -34,7 +34,7 @@ func _test_actions() -> void:
 	})
 	if not h._check(res.ok, "a mixed loadout reads"):
 		return
-	var a: DotAvatarActions = res.value
+	var a: GSAvatarActions = res.value
 	var ids := []
 	for e: Dictionary in a.equipped(&"emote"):
 		ids.append(e["id"])
@@ -45,8 +45,8 @@ func _test_actions() -> void:
 	var many := []
 	for i in 20:
 		many.append({"builtin": "dance"})
-	var capped := DotAvatarActions.from_backbone({"EMOTE": many}, 8)
-	h._check(not capped.ok and capped.error.code == DotError.CODE_QUOTA, "over the site max fails loudly, never trimmed")
+	var capped := GSAvatarActions.from_backbone({"EMOTE": many}, 8)
+	h._check(not capped.ok and capped.error.code == GSError.CODE_QUOTA, "over the site max fails loudly, never trimmed")
 
 	var order := [a.next(&"emote")["id"], a.next(&"emote")["id"], a.next(&"emote")["id"]]
 	h._check(order == ["dance", "action/7/2", "dance"], "pressing again cycles", str(order))
@@ -68,31 +68,31 @@ class FakeConsole extends RefCounted:
 
 func _test_action_input() -> void:
 	h._section("actions: keys and commands")
-	for kind: StringName in DotAvatarActionInput.BINDINGS:
-		var action: StringName = DotAvatarActionInput.BINDINGS[kind]["action"]
+	for kind: StringName in GSAvatarActionInput.BINDINGS:
+		var action: StringName = GSAvatarActionInput.BINDINGS[kind]["action"]
 		if InputMap.has_action(action):
 			InputMap.erase_action(action)
-	InputMap.add_action(DotAvatarActionInput.ACTION_POSE)
+	InputMap.add_action(GSAvatarActionInput.ACTION_POSE)
 	var p := InputEventKey.new()
 	p.physical_keycode = KEY_P
-	InputMap.action_add_event(DotAvatarActionInput.ACTION_POSE, p)
-	DotAvatarActionInput.ensure_actions()
+	InputMap.action_add_event(GSAvatarActionInput.ACTION_POSE, p)
+	GSAvatarActionInput.ensure_actions()
 
-	var emote_events := InputMap.action_get_events(DotAvatarActionInput.ACTION_EMOTE)
+	var emote_events := InputMap.action_get_events(GSAvatarActionInput.ACTION_EMOTE)
 	h._check(emote_events.size() == 1 and (emote_events[0] as InputEventKey).physical_keycode == KEY_COMMA,
 		"the emote key defaults to comma")
-	var pose_events := InputMap.action_get_events(DotAvatarActionInput.ACTION_POSE)
+	var pose_events := InputMap.action_get_events(GSAvatarActionInput.ACTION_POSE)
 	h._check(pose_events.size() == 1 and (pose_events[0] as InputEventKey).physical_keycode == KEY_P,
 		"a key bound first is left alone")
-	InputMap.erase_action(DotAvatarActionInput.ACTION_POSE)
-	DotAvatarActionInput.ensure_actions()
-	pose_events = InputMap.action_get_events(DotAvatarActionInput.ACTION_POSE)
+	InputMap.erase_action(GSAvatarActionInput.ACTION_POSE)
+	GSAvatarActionInput.ensure_actions()
+	pose_events = InputMap.action_get_events(GSAvatarActionInput.ACTION_POSE)
 	h._check(pose_events.size() == 1 and (pose_events[0] as InputEventKey).physical_keycode == KEY_SEMICOLON,
 		"the pose key defaults to semicolon, clear of the team menu's period")
-	InputMap.action_erase_events(DotAvatarActionInput.ACTION_POSE)
-	InputMap.action_add_event(DotAvatarActionInput.ACTION_POSE, p)
+	InputMap.action_erase_events(GSAvatarActionInput.ACTION_POSE)
+	InputMap.action_add_event(GSAvatarActionInput.ACTION_POSE, p)
 
-	var input := DotAvatarActionInput.new()
+	var input := GSAvatarActionInput.new()
 	h.add_child(input)
 	var got: Array[Dictionary] = []
 	input.action_requested.connect(func(e: Dictionary) -> void: got.append(e))
@@ -117,24 +117,24 @@ func _test_action_input() -> void:
 	var said: Variant = (console.commands["gesture"] as Callable).call(PackedStringArray(["wave"]))
 	h._check(said == "gesture wave" and got[-1]["id"] == "wave", "a command plays the action it names")
 	var bad: Variant = (console.commands["pose"] as Callable).call(PackedStringArray(["dance"]))
-	h._check(bad is DotResult and not (bad as DotResult).ok, "a command naming another kind's action fails")
+	h._check(bad is GSResult and not (bad as GSResult).ok, "a command naming another kind's action fails")
 
 	input.free()
-	for kind: StringName in DotAvatarActionInput.BINDINGS:
-		InputMap.erase_action(DotAvatarActionInput.BINDINGS[kind]["action"])
+	for kind: StringName in GSAvatarActionInput.BINDINGS:
+		InputMap.erase_action(GSAvatarActionInput.BINDINGS[kind]["action"])
 	h._done()
 
 
 func _test_content_cache() -> void:
 	h._section("actions: content cache")
-	var cache := DotAvatarContentCache.new()
+	var cache := GSAvatarContentCache.new()
 	cache.directory = "user://test_avatar_content"
-	DotPaths.remove_tree(cache.directory)
+	GSPaths.remove_tree(cache.directory)
 
-	h._check(DotAvatarContentCache.is_content_id("avatar/12/3") and DotAvatarContentCache.is_content_id("action/1/1"),
+	h._check(GSAvatarContentCache.is_content_id("avatar/12/3") and GSAvatarContentCache.is_content_id("action/1/1"),
 		"site content ids are accepted")
-	h._check(not DotAvatarContentCache.is_content_id("avatar/1/../x") and not DotAvatarContentCache.is_content_id("avatar/0/1")
-		and not DotAvatarContentCache.is_content_id("../avatar/1/1") and cache.path_for("x/1/1") == "",
+	h._check(not GSAvatarContentCache.is_content_id("avatar/1/../x") and not GSAvatarContentCache.is_content_id("avatar/0/1")
+		and not GSAvatarContentCache.is_content_id("../avatar/1/1") and cache.path_for("x/1/1") == "",
 		"anything else never becomes a path")
 
 	var root := Node3D.new()
@@ -147,16 +147,16 @@ func _test_content_cache() -> void:
 	var glb := doc.generate_buffer(state)
 	root.free()
 
-	var row := {"contentId": "avatar/5/1", "size": glb.size(), "sha256": DotHash.sha256_bytes(glb)}
+	var row := {"contentId": "avatar/5/1", "size": glb.size(), "sha256": GSHash.sha256_bytes(glb)}
 	var wrong_hash := row.duplicate()
-	wrong_hash["sha256"] = DotHash.sha256_text("other")
-	h._check((cache.store(wrong_hash, glb) as DotResult).error.code == DotError.CODE_INTEGRITY, "a hash mismatch is refused")
+	wrong_hash["sha256"] = GSHash.sha256_text("other")
+	h._check((cache.store(wrong_hash, glb) as GSResult).error.code == GSError.CODE_INTEGRITY, "a hash mismatch is refused")
 	var wrong_size := row.duplicate()
 	wrong_size["size"] = glb.size() + 1
-	h._check((cache.store(wrong_size, glb) as DotResult).error.code == DotError.CODE_INTEGRITY, "a size mismatch is refused")
+	h._check((cache.store(wrong_size, glb) as GSResult).error.code == GSError.CODE_INTEGRITY, "a size mismatch is refused")
 	var text := "not a model".to_utf8_buffer()
-	var not_glb := {"contentId": "avatar/6/1", "size": text.size(), "sha256": DotHash.sha256_bytes(text)}
-	h._check((cache.store(not_glb, text) as DotResult).error.code == DotError.CODE_INVALID, "a file that is not a GLB is refused")
+	var not_glb := {"contentId": "avatar/6/1", "size": text.size(), "sha256": GSHash.sha256_bytes(text)}
+	h._check((cache.store(not_glb, text) as GSResult).error.code == GSError.CODE_INVALID, "a file that is not a GLB is refused")
 	h._check(not cache.has(row), "nothing is kept after a refusal")
 
 	h._check(cache.store(row, glb).ok and cache.has(row), "a verified GLB is kept")
@@ -169,16 +169,16 @@ func _test_content_cache() -> void:
 
 	var tampered := glb.duplicate()
 	tampered[tampered.size() - 1] ^= 0xFF
-	DotPaths.write_bytes(cache.path_for("avatar/5/1"), tampered)
+	GSPaths.write_bytes(cache.path_for("avatar/5/1"), tampered)
 	h._check(cache.has(row), "a file checked this session is trusted on size alone")
 	h._check(not cache.load_scene("avatar/5/1", "0".repeat(64)).ok, "a load with a different hash re-checks and fails")
-	DotPaths.write_bytes(cache.path_for("avatar/5/1"), tampered)
-	DotAvatarContentCache._verified.clear()
+	GSPaths.write_bytes(cache.path_for("avatar/5/1"), tampered)
+	GSAvatarContentCache._verified.clear()
 	h._check(not cache.has(row) and not FileAccess.file_exists(cache.path_for("avatar/5/1")),
 		"a new session re-hashes a kept file and removes one altered on disk")
 	_test_hostile_glbs(cache, glb)
 
-	DotPaths.remove_tree(cache.directory)
+	GSPaths.remove_tree(cache.directory)
 	h._done()
 
 
@@ -201,11 +201,11 @@ func _repack(glb: PackedByteArray, edit: Callable) -> PackedByteArray:
 	return out + js + rest
 
 
-func _test_hostile_glbs(cache: DotAvatarContentCache, glb: PackedByteArray) -> void:
+func _test_hostile_glbs(cache: GSAvatarContentCache, glb: PackedByteArray) -> void:
 	var refused := func(bytes: PackedByteArray, id: String) -> bool:
-		var r := cache.store({"contentId": id, "size": bytes.size(), "sha256": DotHash.sha256_bytes(bytes)}, bytes)
-		return not r.ok and r.error.code == DotError.CODE_INVALID and not FileAccess.file_exists(cache.path_for(id))
-	h._check(DotAvatarContentCache.check_glb(_repack(glb, func(_g: Dictionary) -> void: pass)).ok, "an untouched repack passes the GLB check")
+		var r := cache.store({"contentId": id, "size": bytes.size(), "sha256": GSHash.sha256_bytes(bytes)}, bytes)
+		return not r.ok and r.error.code == GSError.CODE_INVALID and not FileAccess.file_exists(cache.path_for(id))
+	h._check(GSAvatarContentCache.check_glb(_repack(glb, func(_g: Dictionary) -> void: pass)).ok, "an untouched repack passes the GLB check")
 	h._check(refused.call(_repack(glb, func(g: Dictionary) -> void: g["buffers"][0]["uri"] = "http://evil.test/x.bin"), "avatar/7/1"),
 		"a buffer pointing outside the file is refused")
 	h._check(refused.call(_repack(glb, func(g: Dictionary) -> void: g["images"] = [{"uri": "file:///etc/passwd"}]), "avatar/7/2"),
@@ -214,7 +214,7 @@ func _test_hostile_glbs(cache: DotAvatarContentCache, glb: PackedByteArray) -> v
 		"an unknown extension is refused")
 	var many := func(g: Dictionary) -> void:
 		var nodes: Array = g["nodes"]
-		for i in DotAvatarContentCache.MAX_NODES:
+		for i in GSAvatarContentCache.MAX_NODES:
 			nodes.append({})
 	h._check(refused.call(_repack(glb, many), "avatar/7/4"), "a node count past the cap is refused")
 	h._check(refused.call(_repack(glb, func(g: Dictionary) -> void: g["accessors"][0]["count"] = 900_000_000), "avatar/7/5"),
@@ -227,7 +227,7 @@ func _test_hostile_glbs(cache: DotAvatarContentCache, glb: PackedByteArray) -> v
 		(g["scenes"][0]["nodes"] as Array).append((g["nodes"] as Array).size() - 1)
 	var cam := _repack(glb, camera)
 	h._check(refused.call(cam, "wearable/7/7"), "a wearable carrying a camera is refused")
-	var cam_row := {"contentId": "avatar/7/8", "size": cam.size(), "sha256": DotHash.sha256_bytes(cam)}
+	var cam_row := {"contentId": "avatar/7/8", "size": cam.size(), "sha256": GSHash.sha256_bytes(cam)}
 	var kept := cache.store(cam_row, cam)
 	var scene := cache.load_scene("avatar/7/8") if kept.ok else kept
 	h._check(scene.ok and (scene.value as Node).find_children("*", "Camera3D", true, false).is_empty()

@@ -1,4 +1,4 @@
-class_name DotAvatarBuilder
+class_name GSAvatarBuilder
 extends RefCounted
 
 ## Applies an avatar document to a character rig.
@@ -14,7 +14,7 @@ class Step extends RefCounted:
 	## The part the document asked for.
 	var requested: StringName
 	## What will actually be shown: the request, a fallback, or nothing.
-	var resolved: DotAvatarPart = null
+	var resolved: GSAvatarPart = null
 	var scene_path: String = ""
 	var colours: Array = []
 	var attach_to: StringName
@@ -37,11 +37,11 @@ class Step extends RefCounted:
 
 
 ## Works out what to build, touching no nodes.
-## Slots hidden by another slot's [member DotAvatarSlot.hides] are dropped here so a caller counting steps sees what will appear.
+## Slots hidden by another slot's [member GSAvatarSlot.hides] are dropped here so a caller counting steps sees what will appear.
 static func plan(
-	avatar: DotAvatar,
-	schema: DotAvatarSchema,
-	catalogue: DotAvatarCatalogue
+	avatar: GSAvatar,
+	schema: GSAvatarSchema,
+	catalogue: GSAvatarCatalogue
 ) -> Array[Step]:
 	var steps: Array[Step] = []
 
@@ -101,9 +101,9 @@ static func apply(
 	steps: Array[Step],
 	rig: Node3D,
 	placeholder: PackedScene = null
-) -> DotResult:
+) -> GSResult:
 	if rig == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No rig to build on.")
+		return GSResult.fail(GSError.CODE_INVALID, "No rig to build on.")
 
 	var shown := 0
 
@@ -113,7 +113,7 @@ static func apply(
 		if mount == null:
 			# A slot with nowhere to attach is a mismatch between the schema and the
 			# rig, which is a content problem and worth naming rather than skipping.
-			DotLog.warn(
+			GSLog.warn(
 				CHANNEL,
 				"the rig has no attachment for a slot",
 				{"slot": String(step.slot), "expected_node": String(step.attach_to)}
@@ -140,7 +140,7 @@ static func apply(
 		_tint(instance, step.colours)
 		shown += 1
 
-	return DotResult.success(shown)
+	return GSResult.success(shown)
 
 
 ## Applies a slot's colours to whatever the part instantiated.
@@ -167,7 +167,7 @@ static func _tint_recursive(node: Node, channel: int, colour: Color) -> void:
 
 
 ## The same plan as plain dictionaries, for GameSpice Player Char to build.
-## The planner stays here so a server validates from ids without a rendering addon; [code]DotPlayerModelBuilder.from_plan[/code] consumes this and neither addon imports the other.
+## The planner stays here so a server validates from ids without a rendering addon; [code]GSPlayerModelBuilder.from_plan[/code] consumes this and neither addon imports the other.
 ## [method apply] still works for a game with only this addon; usage in docs/integration.md.
 static func plan_dicts(steps: Array[Step]) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []

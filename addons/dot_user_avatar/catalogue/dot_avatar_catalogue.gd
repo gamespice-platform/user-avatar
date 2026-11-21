@@ -1,4 +1,4 @@
-class_name DotAvatarCatalogue
+class_name GSAvatarCatalogue
 extends RefCounted
 
 ## Turns a part id into something a client can render, through GameSpice Cloud (signed manifests, content hashes).
@@ -18,7 +18,7 @@ var auto_fetch: bool = true
 const CHANNEL := "avatar.catalogue"
 
 ## Registry name GameSpice Cloud publishes itself under.
-## Kept for [method describe]; fetching goes through [DotContent], the family's one caller for downloadable content.
+## Kept for [method describe]; fetching goes through [GSContent], the family's one caller for downloadable content.
 const CLOUD_SERVICE := &"dot_cloud_client"
 
 ## Where built-in parts live when a part names no content id; the id is appended
@@ -28,7 +28,7 @@ var builtin_prefix: String = "res://avatars/"
 
 var builtin_suffix: String = ".tscn"
 
-## Overrides everything. Takes a [DotAvatarPart] and returns a path, or "".
+## Overrides everything. Takes a [GSAvatarPart] and returns a path, or "".
 ##
 ## The escape hatch for a game whose content layout is nothing like either default.
 var resolver: Callable = Callable()
@@ -40,7 +40,7 @@ var _cloud_checked: bool = false
 ## part id -> resolved path. Cleared when content is mounted or released.
 var _cache: Dictionary = {}
 
-## Part id -> the [DotAvatarPart], for parts whose content has not arrived.
+## Part id -> the [GSAvatarPart], for parts whose content has not arrived.
 ## The part, not a marker, because arrival has to re-resolve it and an id alone cannot be.
 var _pending: Dictionary = {}
 
@@ -54,17 +54,17 @@ func _cloud_client() -> Object:
 		return _cloud
 
 	_cloud_checked = true
-	_cloud = DotRegistry.get_service(CLOUD_SERVICE)
+	_cloud = GSRegistry.get_service(CLOUD_SERVICE)
 
 	if _cloud != null:
-		DotLog.debug(CHANNEL, "resolving avatar content through dot-cloud")
+		GSLog.debug(CHANNEL, "resolving avatar content through dot-cloud")
 
 	return _cloud
 
 
 ## Where a part's scene lives, or "" when it is not available yet.
 ## "" is normal, not a failure: use the fallback and retry later, never leave the player invisible.
-func resolve(part: DotAvatarPart) -> String:
+func resolve(part: GSAvatarPart) -> String:
 	if part == null:
 		return ""
 
@@ -82,7 +82,7 @@ func resolve(part: DotAvatarPart) -> String:
 	return path
 
 
-func _resolve_uncached(part: DotAvatarPart) -> String:
+func _resolve_uncached(part: GSAvatarPart) -> String:
 	if resolver.is_valid():
 		var custom: Variant = resolver.call(part)
 		return str(custom) if custom != null else ""
@@ -93,7 +93,7 @@ func _resolve_uncached(part: DotAvatarPart) -> String:
 
 	# Already downloaded and mounted: the cheap synchronous question, which is the one
 	# worth asking while a character is being dressed.
-	var mounted := _scene_in(DotContent.resolve(StringName(part.content_id)), part)
+	var mounted := _scene_in(GSContent.resolve(StringName(part.content_id)), part)
 
 	if mounted != "":
 		return mounted
@@ -109,10 +109,10 @@ func _resolve_uncached(part: DotAvatarPart) -> String:
 ## The part actually used for a slot, walking the fallback chain.
 ## The chain is bounded: parts naming each other as fallbacks is an authoring mistake that would otherwise hang the renderer.
 func resolve_with_fallback(
-	part: DotAvatarPart,
-	schema: DotAvatarSchema,
+	part: GSAvatarPart,
+	schema: GSAvatarSchema,
 	max_depth: int = 4
-) -> DotAvatarPart:
+) -> GSAvatarPart:
 	var current := part
 	var seen := {}
 	var depth := 0
@@ -137,7 +137,7 @@ func resolve_with_fallback(
 ## Where [param part]'s scene is inside mounted content at [param path], or "".
 ## The mount is usually a directory and the answer must be a file, so a bare prefix is not accepted as-is
 ## (it would re-fetch every draw); the part's own scene under it is tried first, matching [member builtin_prefix].
-func _scene_in(path: String, part: DotAvatarPart) -> String:
+func _scene_in(path: String, part: GSAvatarPart) -> String:
 	if path == "" or part == null:
 		return ""
 
@@ -156,7 +156,7 @@ func _scene_in(path: String, part: DotAvatarPart) -> String:
 
 ## Download the content [param part] needs, then re-resolve everything waiting on it.
 ## Never awaited by the caller; idempotent, and [member _fetching] stops a part asked for every frame fetching every frame.
-func _fetch(part: DotAvatarPart) -> void:
+func _fetch(part: GSAvatarPart) -> void:
 	if part == null or part.content_id == "":
 		return
 
@@ -167,13 +167,13 @@ func _fetch(part: DotAvatarPart) -> void:
 
 	# No cloud client at all is the ordinary shape of a build that ships its cosmetics,
 	# and a part naming content there is a content mistake rather than a download. Said
-	# once at debug by [DotContent] rather than warned per part per frame.
-	if not DotContent.available():
+	# once at debug by [GSContent] rather than warned per part per frame.
+	if not GSContent.available():
 		return
 
 	_fetching[content] = true
 
-	var res: DotResult = await DotContent.ensure(content)
+	var res: GSResult = await GSContent.ensure(content)
 
 	_fetching.erase(content)
 
@@ -181,7 +181,7 @@ func _fetch(part: DotAvatarPart) -> void:
 		# Warn once and carry on: every wearer is already drawing a fallback. The error code and message
 		# live on `res.error`, not `res`; reading `res.message` aborted this detached coroutine
 		# while the suite still exited 0, so read stderr.
-		DotLog.warn(CHANNEL, "could not fetch avatar content", {
+		GSLog.warn(CHANNEL, "could not fetch avatar content", {
 			"content": String(content),
 			"code": res.error.code if res.error != null else "",
 			"message": res.error.message if res.error != null else "",
@@ -197,19 +197,19 @@ func _content_arrived(content: StringName) -> void:
 	var ready: Array[StringName] = []
 
 	for id in _pending.keys():
-		var part: DotAvatarPart = _pending[id]
+		var part: GSAvatarPart = _pending[id]
 
 		if part == null or StringName(part.content_id) != content:
 			continue
 
-		var path := DotContent.resolve(content)
+		var path := GSContent.resolve(content)
 		var candidate := _scene_in(path, part)
 
 		if candidate == "":
 			# Mounted, and the part is not in it. A content mistake rather than a fetch
 			# failure, and worth saying so: the two look identical from the outside and
 			# only one of them is fixed by retrying.
-			DotLog.warn(CHANNEL, "content mounted but the part is not in it", {
+			GSLog.warn(CHANNEL, "content mounted but the part is not in it", {
 				"part": String(id), "content": String(content), "at": path,
 			})
 			continue
@@ -227,10 +227,10 @@ func _content_arrived(content: StringName) -> void:
 func fetch_pending() -> int:
 	var before := _pending.size()
 
-	var wanted: Array[DotAvatarPart] = []
+	var wanted: Array[GSAvatarPart] = []
 
 	for id in _pending.keys():
-		var part: DotAvatarPart = _pending[id]
+		var part: GSAvatarPart = _pending[id]
 
 		if part != null and part.content_id != "":
 			wanted.append(part)

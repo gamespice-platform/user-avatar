@@ -26,11 +26,11 @@ var _passed := 0
 var _failed := 0
 var _failures := PackedStringArray()
 
-var _schema: DotAvatarSchema = null
+var _schema: GSAvatarSchema = null
 
 
 func _ready() -> void:
-	DotLog.set_level(DotLog.Level.ERROR)
+	GSLog.set_level(GSLog.Level.ERROR)
 	_run.call_deferred()
 
 
@@ -38,7 +38,7 @@ func _run() -> void:
 	print("dot-user-avatar self-test")
 	print("")
 
-	DotPaths.remove_tree(AVATAR_DIR)
+	GSPaths.remove_tree(AVATAR_DIR)
 
 	_schema = _build_schema()
 
@@ -47,11 +47,11 @@ func _run() -> void:
 	_test_validation()
 	_test_conform()
 	_test_wire()
-	await _test_store_contract(DotAvatarStoreMemory.new(), "memory")
-	await _test_store_contract(DotAvatarStoreLocal.at(AVATAR_DIR), "local")
+	await _test_store_contract(GSAvatarStoreMemory.new(), "memory")
+	await _test_store_contract(GSAvatarStoreLocal.at(AVATAR_DIR), "local")
 	var manager_suite := ManagerSuite.new(self)
 	var bb: RefCounted = BackboneSuite.new(self)
-	var backbone_store: DotAvatarStoreBackbone = bb._fake_backbone_store()
+	var backbone_store: GSAvatarStoreBackbone = bb._fake_backbone_store()
 	await _test_store_contract(backbone_store, "backbone")
 	# The store parented this client to the root on open, but it was supplied here, so
 	# closing leaves it alone and it is ours to free.
@@ -71,7 +71,7 @@ func _run() -> void:
 	actions._test_action_input()
 	actions._test_content_cache()
 
-	DotPaths.remove_tree(AVATAR_DIR)
+	GSPaths.remove_tree(AVATAR_DIR)
 
 	print("")
 	# The two guards, as the last two checks. See docs/testing.md.
@@ -113,46 +113,46 @@ func _check(condition: bool, what: String, detail: String = "") -> bool:
 
 
 ## A schema of the kind a game would ship.
-func _build_schema() -> DotAvatarSchema:
-	var schema := DotAvatarSchema.new()
+func _build_schema() -> GSAvatarSchema:
+	var schema := GSAvatarSchema.new()
 	schema.id = &"humanoid"
 
-	var body := DotAvatarSlot.make(&"body", true, &"body_default")
+	var body := GSAvatarSlot.make(&"body", true, &"body_default")
 	body.layer = 10
 
-	var hair := DotAvatarSlot.make(&"hair")
+	var hair := GSAvatarSlot.make(&"hair")
 	hair.layer = 30
 
-	var hat := DotAvatarSlot.make(&"hat")
+	var hat := GSAvatarSlot.make(&"hat")
 	hat.layer = 40
 	hat.hides = [&"hair"]
 
-	var shirt := DotAvatarSlot.make(&"shirt", true, &"shirt_default")
+	var shirt := GSAvatarSlot.make(&"shirt", true, &"shirt_default")
 	shirt.layer = 20
 
 	schema.slots = [body, hair, hat, shirt]
 
-	var body_default := DotAvatarPart.make(&"body_default", &"body", true)
+	var body_default := GSAvatarPart.make(&"body_default", &"body", true)
 	body_default.colour_channels = 1
 
-	var hair_long := DotAvatarPart.make(&"hair_long", &"hair", true)
+	var hair_long := GSAvatarPart.make(&"hair_long", &"hair", true)
 	hair_long.colour_channels = 1
 
-	var hair_rare := DotAvatarPart.make(&"hair_rare", &"hair", false)
+	var hair_rare := GSAvatarPart.make(&"hair_rare", &"hair", false)
 	# Tintable like the free one. Without this the entitlement cases below fail on the
 	# colour check instead — which is the colour check working, but it means those
 	# cases stop testing entitlements at all.
 	hair_rare.colour_channels = 1
 
-	var shirt_default := DotAvatarPart.make(&"shirt_default", &"shirt", true)
+	var shirt_default := GSAvatarPart.make(&"shirt_default", &"shirt", true)
 	shirt_default.colour_channels = 2
 
-	var hat_paid := DotAvatarPart.make(&"hat_paid", &"hat", false)
+	var hat_paid := GSAvatarPart.make(&"hat_paid", &"hat", false)
 
-	var hat_retired := DotAvatarPart.make(&"hat_retired", &"hat", false)
+	var hat_retired := GSAvatarPart.make(&"hat_retired", &"hat", false)
 	hat_retired.retired = true
 
-	var hat_streamed := DotAvatarPart.make(&"hat_streamed", &"hat", true)
+	var hat_streamed := GSAvatarPart.make(&"hat_streamed", &"hat", true)
 	hat_streamed.content_id = "sha256:notdownloadedyet"
 	hat_streamed.fallback_id = &"hat_paid"
 
@@ -165,8 +165,8 @@ func _build_schema() -> DotAvatarSchema:
 	return schema
 
 
-func _wearable() -> DotAvatar:
-	var a := DotAvatar.make(&"humanoid")
+func _wearable() -> GSAvatar:
+	var a := GSAvatar.make(&"humanoid")
 	a.set_part(&"body", &"body_default")
 	a.set_part(&"shirt", &"shirt_default")
 	a.set_part(&"hair", &"hair_long")
@@ -175,7 +175,7 @@ func _wearable() -> DotAvatar:
 
 
 static func _key(seed_text: String) -> String:
-	return DotHash.sha256_text(seed_text).substr(0, 22)
+	return GSHash.sha256_text(seed_text).substr(0, 22)
 
 
 func _test_schema() -> void:
@@ -194,26 +194,26 @@ func _test_schema() -> void:
 
 	# A required slot with no default cannot be repaired, so every document missing it
 	# would be permanently invalid. Forbidden at startup rather than discovered later.
-	var broken := DotAvatarSchema.new()
+	var broken := GSAvatarSchema.new()
 	broken.id = &"broken"
-	broken.slots = [DotAvatarSlot.make(&"body", true, &"")]
+	broken.slots = [GSAvatarSlot.make(&"body", true, &"")]
 	_check(
 		not broken.validate_schema().ok,
 		"a required slot with no default is refused at startup"
 	)
 
-	var dangling := DotAvatarSchema.new()
+	var dangling := GSAvatarSchema.new()
 	dangling.id = &"dangling"
-	dangling.slots = [DotAvatarSlot.make(&"body", true, &"missing_part")]
+	dangling.slots = [GSAvatarSlot.make(&"body", true, &"missing_part")]
 	_check(
 		not dangling.validate_schema().ok,
 		"a default that does not exist is refused"
 	)
 
-	var orphan := DotAvatarSchema.new()
+	var orphan := GSAvatarSchema.new()
 	orphan.id = &"orphan"
-	orphan.slots = [DotAvatarSlot.make(&"body")]
-	orphan.parts = [DotAvatarPart.make(&"thing", &"nowhere")]
+	orphan.slots = [GSAvatarSlot.make(&"body")]
+	orphan.parts = [GSAvatarPart.make(&"thing", &"nowhere")]
 	_check(
 		not orphan.validate_schema().ok,
 		"a part in a slot that does not exist is refused"
@@ -221,20 +221,20 @@ func _test_schema() -> void:
 
 	# An editor must not offer what the player cannot wear, or every choice is a
 	# refusal waiting to happen.
-	var poor := DotAvatarEntitlements.none()
+	var poor := GSAvatarEntitlements.none()
 	var choices := _schema.choices_for(&"hair", poor)
 
 	_check(choices.size() == 1, "an editor is offered only free parts by default")
 	_check(choices[0].id == &"hair_long", "and it is the free one")
 
-	var rich := DotAvatarEntitlements.of([&"hair_rare"])
+	var rich := GSAvatarEntitlements.of([&"hair_rare"])
 	_check(
 		_schema.choices_for(&"hair", rich).size() == 2,
 		"and owned parts as well"
 	)
 
 	# A retired part stays wearable for whoever has it and is offered to nobody.
-	var owner := DotAvatarEntitlements.of([&"hat_retired"])
+	var owner := GSAvatarEntitlements.of([&"hat_retired"])
 	var hats := _schema.choices_for(&"hat", owner)
 	var offered_retired := false
 	for h in hats:
@@ -266,7 +266,7 @@ func _test_document() -> void:
 	b.set_colour(&"hair", 0, Color(0.5019608, 0.2509804, 0.1254902))
 	var stored := b.colour_of(&"hair", 0)
 	_check(
-		stored == DotAvatar.quantise(stored),
+		stored == GSAvatar.quantise(stored),
 		"a colour is quantised when it is set"
 	)
 
@@ -290,7 +290,7 @@ func _test_document() -> void:
 	_check(c.digest() != d.digest(), "and a change alters it")
 
 	# Order must not matter, or two machines that built the same avatar disagree.
-	var e := DotAvatar.make(&"humanoid")
+	var e := GSAvatar.make(&"humanoid")
 	e.set_part(&"shirt", &"shirt_default")
 	e.set_part(&"body", &"body_default")
 	e.set_part(&"hair", &"hair_long")
@@ -300,16 +300,16 @@ func _test_document() -> void:
 		"the digest does not depend on the order slots were filled"
 	)
 
-	var round_tripped := DotAvatar.from_dict(c.to_dict())
+	var round_tripped := GSAvatar.from_dict(c.to_dict())
 	_check(round_tripped.ok, "a document round-trips through a dictionary")
 	_check(
-		round_tripped.ok and (round_tripped.value as DotAvatar).digest() == c.digest(),
+		round_tripped.ok and (round_tripped.value as GSAvatar).digest() == c.digest(),
 		"with an identical digest"
 	)
 
 	# Hostile ids. These become dictionary keys, log lines and content lookups.
 	for bad in ["../../etc/passwd", "a/b", "with space", "new\nline", ""]:
-		var hostile := DotAvatar.make(&"humanoid")
+		var hostile := GSAvatar.make(&"humanoid")
 		hostile.parts[StringName(bad)] = &"body_default"
 		_check(
 			not hostile.validate().ok,
@@ -317,8 +317,8 @@ func _test_document() -> void:
 		)
 
 	# Bounded, because a document is relayed to everyone in the match.
-	var huge := DotAvatar.make(&"humanoid")
-	for i in range(DotAvatar.MAX_SLOTS + 5):
+	var huge := GSAvatar.make(&"humanoid")
+	for i in range(GSAvatar.MAX_SLOTS + 5):
 		huge.parts[StringName("slot_%d" % i)] = &"body_default"
 	_check(not huge.validate().ok, "an over-large document is refused")
 
@@ -326,14 +326,14 @@ func _test_document() -> void:
 	for i in range(500):
 		huge_dict["parts"]["slot_%d" % i] = "body_default"
 	_check(
-		not DotAvatar.from_dict(huge_dict).ok,
+		not GSAvatar.from_dict(huge_dict).ok,
 		"and is refused while reading, not after it is fully built"
 	)
 
 	var newer := c.to_dict()
-	newer["version"] = DotAvatar.SCHEMA_VERSION + 3
+	newer["version"] = GSAvatar.SCHEMA_VERSION + 3
 	_check(
-		not DotAvatar.from_dict(newer).ok,
+		not GSAvatar.from_dict(newer).ok,
 		"a document from a newer build is refused, not silently downgraded"
 	)
 	_done()
@@ -342,8 +342,8 @@ func _test_document() -> void:
 func _test_validation() -> void:
 	_section("validation")
 
-	var owned := DotAvatarEntitlements.of([&"hat_paid"])
-	var nothing := DotAvatarEntitlements.none()
+	var owned := GSAvatarEntitlements.of([&"hat_paid"])
+	var nothing := GSAvatarEntitlements.none()
 
 	_check(
 		_schema.validate(_wearable(), nothing).ok,
@@ -359,11 +359,11 @@ func _test_validation() -> void:
 		"an avatar wearing an unowned part is refused"
 	)
 	_check(
-		_schema.validate(cheating, DotAvatarEntitlements.of([&"hair_rare"])).ok,
+		_schema.validate(cheating, GSAvatarEntitlements.of([&"hair_rare"])).ok,
 		"and accepted once the player owns it"
 	)
 	_check(
-		_schema.validate(cheating, nothing).code() == DotError.CODE_FORBIDDEN,
+		_schema.validate(cheating, nothing).code() == GSError.CODE_FORBIDDEN,
 		"with a code a caller can branch on"
 	)
 
@@ -390,7 +390,7 @@ func _test_validation() -> void:
 		"a slot the schema does not have is refused"
 	)
 
-	var naked := DotAvatar.make(&"humanoid")
+	var naked := GSAvatar.make(&"humanoid")
 	naked.set_part(&"hair", &"hair_long")
 	_check(
 		not _schema.validate(naked, nothing).ok,
@@ -405,7 +405,7 @@ func _test_validation() -> void:
 		"colours on a part that has none are refused"
 	)
 
-	var foreign := DotAvatar.make(&"other_game")
+	var foreign := GSAvatar.make(&"other_game")
 	foreign.set_part(&"body", &"body_default")
 	_check(
 		not _schema.validate(foreign, nothing).ok,
@@ -414,7 +414,7 @@ func _test_validation() -> void:
 
 	# The escape hatch, and the reason it is named so conspicuously.
 	_check(
-		_schema.validate(cheating, DotAvatarEntitlements.everything()).ok,
+		_schema.validate(cheating, GSAvatarEntitlements.everything()).ok,
 		"an unrestricted entitlement set permits everything"
 	)
 	_check(
@@ -427,7 +427,7 @@ func _test_validation() -> void:
 func _test_conform() -> void:
 	_section("conforming to a changed schema")
 
-	var nothing := DotAvatarEntitlements.none()
+	var nothing := GSAvatarEntitlements.none()
 
 	# A player who has not logged in for a month must not load into an error.
 	var stale := _wearable()
@@ -461,7 +461,7 @@ func _test_conform() -> void:
 	)
 
 	# A new required slot fills from its default.
-	var missing_required := DotAvatar.make(&"humanoid")
+	var missing_required := GSAvatar.make(&"humanoid")
 	missing_required.set_part(&"hair", &"hair_long")
 
 	var filled := _schema.conform(missing_required, nothing)
@@ -486,7 +486,7 @@ func _test_conform() -> void:
 	)
 
 	# The one thing conform refuses: nothing in a foreign document means anything.
-	var foreign := DotAvatar.make(&"other_game")
+	var foreign := GSAvatar.make(&"other_game")
 	_check(
 		not _schema.conform(foreign, nothing).ok,
 		"a document for another schema cannot be conformed"
@@ -501,7 +501,7 @@ func _test_conform() -> void:
 	_done()
 
 
-## A stand-in for DotNetWriter / DotNetReader; GameSpice Net is not installed here, but the duck-typed
+## A stand-in for GSNetWriter / GSNetReader; GameSpice Net is not installed here, but the duck-typed
 ## calls must line up with the real thing, as a method-name typo only fails in a host game.
 class FakeWire extends RefCounted:
 	var values: Array = []
@@ -525,14 +525,14 @@ func _test_wire() -> void:
 	var original := _wearable()
 	var wire := FakeWire.new()
 
-	var written := DotAvatarSync.write(original, _schema, wire)
+	var written := GSAvatarSync.write(original, _schema, wire)
 	_check(written.ok, "an avatar writes")
 
-	var decoded := DotAvatarSync.read(_schema, wire)
+	var decoded := GSAvatarSync.read(_schema, wire)
 	_check(decoded.ok, "and reads back", str(decoded.error) if not decoded.ok else "")
 
 	if decoded.ok:
-		var got: DotAvatar = decoded.value
+		var got: GSAvatar = decoded.value
 		_check(
 			got.digest() == original.digest(),
 			"identically, so the digest still matches",
@@ -544,9 +544,9 @@ func _test_wire() -> void:
 		)
 
 	_check(
-		DotAvatarSync.estimated_bits(8) < 800,
+		GSAvatarSync.estimated_bits(8) < 800,
 		"eight slots cost under 100 bytes",
-		"%d bits" % DotAvatarSync.estimated_bits(8)
+		"%d bits" % GSAvatarSync.estimated_bits(8)
 	)
 
 	# Everything here arrived from another machine. An index past the end of the
@@ -555,27 +555,27 @@ func _test_wire() -> void:
 	var hostile := FakeWire.new()
 	hostile.values = [1, 9999, 0, 0]
 	_check(
-		not DotAvatarSync.read(_schema, hostile).ok,
+		not GSAvatarSync.read(_schema, hostile).ok,
 		"a slot index past the end of the schema is refused"
 	)
 
 	var hostile_part := FakeWire.new()
 	hostile_part.values = [1, 0, 9999, 0]
 	_check(
-		not DotAvatarSync.read(_schema, hostile_part).ok,
+		not GSAvatarSync.read(_schema, hostile_part).ok,
 		"a part index past the end is refused"
 	)
 
 	var hostile_count := FakeWire.new()
 	hostile_count.values = [31, 0, 0, 0]
 	_check(
-		not DotAvatarSync.read(_schema, hostile_count).ok,
+		not GSAvatarSync.read(_schema, hostile_count).ok,
 		"a slot count past the document limit is refused"
 	)
 
 	var hostile_channels := FakeWire.new()
 	hostile_channels.values = [1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-	var channelled := DotAvatarSync.read(_schema, hostile_channels)
+	var channelled := GSAvatarSync.read(_schema, hostile_channels)
 	_check(
 		channelled.ok,
 		"a legal channel count is accepted"
@@ -583,59 +583,59 @@ func _test_wire() -> void:
 	_done()
 
 
-func _test_store_contract(store: DotAvatarStore, label: String) -> void:
+func _test_store_contract(store: GSAvatarStore, label: String) -> void:
 	_section("store contract")
 	print("store contract: %s" % label)
 
 	var key := _key("store-%s" % label)
 
-	var opened: DotResult = await store.open()
+	var opened: GSResult = await store.open()
 	_check(opened.ok, "[%s] opens" % label)
 
-	var missing: DotResult = await store.fetch(key)
+	var missing: GSResult = await store.fetch(key)
 	_check(
 		missing.ok and missing.value == null,
 		"[%s] a player with no avatar is not a failure" % label
 	)
 
 	var a := _wearable()
-	var stored: DotResult = await store.store(key, a)
+	var stored: GSResult = await store.store(key, a)
 	_check(stored.ok, "[%s] an avatar stores" % label)
 
-	var read: DotResult = await store.fetch(key)
+	var read: GSResult = await store.fetch(key)
 	_check(read.ok and read.value != null, "[%s] and reads back" % label)
 
 	if read.ok and read.value != null:
-		var got: DotAvatar = read.value
+		var got: GSAvatar = read.value
 		_check(
 			got.digest() == a.digest(),
 			"[%s] with an identical digest" % label
 		)
 
 		got.set_part(&"hair", &"hair_rare")
-		var again: DotResult = await store.fetch(key)
+		var again: GSResult = await store.fetch(key)
 		_check(
-			again.ok and (again.value as DotAvatar).digest() == a.digest(),
+			again.ok and (again.value as GSAvatar).digest() == a.digest(),
 			"[%s] the store hands out copies, not references" % label
 		)
 
-	var invalid := DotAvatar.make(&"")
-	var refused: DotResult = await store.store(key, invalid)
+	var invalid := GSAvatar.make(&"")
+	var refused: GSResult = await store.store(key, invalid)
 	_check(
 		not refused.ok,
 		"[%s] a structurally invalid avatar is refused" % label
 	)
 
-	var traversal: DotResult = await store.fetch("../../secrets")
+	var traversal: GSResult = await store.fetch("../../secrets")
 	_check(
 		not traversal.ok,
 		"[%s] a malformed key never reaches the store" % label
 	)
 
-	var removed: DotResult = await store.remove(key)
+	var removed: GSResult = await store.remove(key)
 	_check(removed.ok, "[%s] an avatar removes" % label)
 
-	var gone: DotResult = await store.fetch(key)
+	var gone: GSResult = await store.fetch(key)
 	_check(gone.ok and gone.value == null, "[%s] and is then absent" % label)
 
 	store.close()
@@ -645,7 +645,7 @@ func _test_store_contract(store: DotAvatarStore, label: String) -> void:
 func _test_catalogue() -> void:
 	_section("catalogue")
 
-	var catalogue := DotAvatarCatalogue.new()
+	var catalogue := GSAvatarCatalogue.new()
 
 	# No GameSpice Cloud installed and no built-in content, so nothing resolves. That is a
 	# normal outcome on a server and in a test, and it must not be a failure.
@@ -661,14 +661,14 @@ func _test_catalogue() -> void:
 
 	# The fallback chain has to be bounded: two parts naming each other is a content
 	# mistake that would otherwise hang the renderer.
-	var loop_a := DotAvatarPart.make(&"loop_a", &"hat")
+	var loop_a := GSAvatarPart.make(&"loop_a", &"hat")
 	loop_a.fallback_id = &"loop_b"
-	var loop_b := DotAvatarPart.make(&"loop_b", &"hat")
+	var loop_b := GSAvatarPart.make(&"loop_b", &"hat")
 	loop_b.fallback_id = &"loop_a"
 
-	var looped := DotAvatarSchema.new()
+	var looped := GSAvatarSchema.new()
 	looped.id = &"looped"
-	looped.slots = [DotAvatarSlot.make(&"hat")]
+	looped.slots = [GSAvatarSlot.make(&"hat")]
 	looped.parts = [loop_a, loop_b]
 	looped.invalidate()
 
@@ -681,7 +681,7 @@ func _test_catalogue() -> void:
 	# The resolver hook, for a game whose content layout is nothing like either
 	# default.
 	catalogue.invalidate()
-	catalogue.resolver = func(p: DotAvatarPart) -> String:
+	catalogue.resolver = func(p: GSAvatarPart) -> String:
 		return "res://custom/%s.tscn" % p.id
 
 	_check(
@@ -694,10 +694,10 @@ func _test_catalogue() -> void:
 func _test_builder() -> void:
 	_section("builder")
 
-	var catalogue := DotAvatarCatalogue.new()
+	var catalogue := GSAvatarCatalogue.new()
 	var avatar := _wearable()
 
-	var steps := DotAvatarBuilder.plan(avatar, _schema, catalogue)
+	var steps := GSAvatarBuilder.plan(avatar, _schema, catalogue)
 
 	_check(steps.size() == 3, "a plan covers every filled slot", "%d" % steps.size())
 	_check(
@@ -708,7 +708,7 @@ func _test_builder() -> void:
 
 	# Nothing resolves in this project, so every slot is missing — which is exactly
 	# the case that must not produce an invisible player.
-	var summary := DotAvatarBuilder.summarise(steps)
+	var summary := GSAvatarBuilder.summarise(steps)
 	_check(
 		int(summary["missing"]) == 3,
 		"content that has not arrived is reported as missing, not skipped"
@@ -723,7 +723,7 @@ func _test_builder() -> void:
 	var hatted := _wearable()
 	hatted.set_part(&"hat", &"hat_paid")
 
-	var hat_steps := DotAvatarBuilder.plan(hatted, _schema, catalogue)
+	var hat_steps := GSAvatarBuilder.plan(hatted, _schema, catalogue)
 	var has_hair := false
 	for step in hat_steps:
 		if step.slot == &"hair":
@@ -734,7 +734,7 @@ func _test_builder() -> void:
 	# A document naming a part the schema does not have must not crash the plan.
 	var broken := _wearable()
 	broken.parts[&"hair"] = &"not_a_part"
-	var broken_steps := DotAvatarBuilder.plan(broken, _schema, catalogue)
+	var broken_steps := GSAvatarBuilder.plan(broken, _schema, catalogue)
 	_check(
 		broken_steps.size() == 2,
 		"an unconformed document skips the unknown part rather than crashing",
@@ -742,7 +742,7 @@ func _test_builder() -> void:
 	)
 
 	_check(
-		DotAvatarBuilder.apply(steps, null).ok == false,
+		GSAvatarBuilder.apply(steps, null).ok == false,
 		"applying to no rig is a failure, not a crash"
 	)
 	_done()

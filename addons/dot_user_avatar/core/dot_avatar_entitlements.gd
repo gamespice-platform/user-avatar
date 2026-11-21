@@ -1,4 +1,4 @@
-class_name DotAvatarEntitlements
+class_name GSAvatarEntitlements
 extends RefCounted
 
 ## What one player is allowed to wear: a set of ids and nothing else.
@@ -13,20 +13,20 @@ var owned: Dictionary = {}
 var unrestricted: bool = false
 
 
-static func none() -> DotAvatarEntitlements:
-	return DotAvatarEntitlements.new()
+static func none() -> GSAvatarEntitlements:
+	return GSAvatarEntitlements.new()
 
 
-static func of(ids: Array) -> DotAvatarEntitlements:
-	var e := DotAvatarEntitlements.new()
+static func of(ids: Array) -> GSAvatarEntitlements:
+	var e := GSAvatarEntitlements.new()
 	for id in ids:
 		e.grant(StringName(str(id)))
 	return e
 
 
 ## For an editor preview or a creator sandbox. See [member unrestricted].
-static func everything() -> DotAvatarEntitlements:
-	var e := DotAvatarEntitlements.new()
+static func everything() -> GSAvatarEntitlements:
+	var e := GSAvatarEntitlements.new()
 	e.unrestricted = true
 	return e
 
@@ -67,5 +67,5 @@ func describe() -> Dictionary:
 
 func _to_string() -> String:
 	if unrestricted:
-		return "DotAvatarEntitlements(unrestricted)"
-	return "DotAvatarEntitlements(%d owned)" % owned.size()
+		return "GSAvatarEntitlements(unrestricted)"
+	return "GSAvatarEntitlements(%d owned)" % owned.size()

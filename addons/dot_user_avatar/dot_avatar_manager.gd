@@ -1,10 +1,10 @@
 @tool
-class_name DotAvatarManager
+class_name GSAvatarManager
 extends Node
 
 ## Resolves, validates and publishes avatars; usage in README.md. The node a game adds.
 ## Server rule: a client's avatar is validated against schema and entitlements, loading no mesh, texture or scene.
-## GameSpice User is not imported: [code]dot_user_manager[/code] is found through [DotRegistry] only to keep the profile digest current.
+## GameSpice User is not imported: [code]dot_user_manager[/code] is found through [GSRegistry] only to keep the profile digest current.
 
 const CHANNEL := "avatar"
 const SERVICE := &"dot_avatar_manager"
@@ -13,10 +13,10 @@ const SERVICE := &"dot_avatar_manager"
 const USER_SERVICE := &"dot_user_manager"
 
 ## Emitted once an avatar is resolved for a player.
-signal avatar_resolved(user_key: String, avatar: DotAvatar)
+signal avatar_resolved(user_key: String, avatar: GSAvatar)
 
 ## Emitted when a player publishes a new one.
-signal avatar_published(user_key: String, avatar: DotAvatar)
+signal avatar_published(user_key: String, avatar: GSAvatar)
 
 ## Emitted when a stored avatar had to be repaired to fit the current schema.
 ## Carries what changed, so a game can tell the player.
@@ -28,11 +28,11 @@ signal avatar_refused(user_key: String, reason: String)
 @export_group("Content")
 
 ## The schema every avatar here is written against. Required.
-@export var schema: DotAvatarSchema = null
+@export var schema: GSAvatarSchema = null
 
 @export_group("Configuration")
 
-@export var config: DotAvatarConfig = null
+@export var config: GSAvatarConfig = null
 
 ## JSON file layered over the exported defaults. Empty disables the file layer.
 @export var config_file: String = "user://dot_avatar.json"
@@ -41,23 +41,23 @@ signal avatar_refused(user_key: String, reason: String)
 
 @export_group("Wiring")
 
-## Register in [DotRegistry] under [constant SERVICE].
+## Register in [GSRegistry] under [constant SERVICE].
 @export var register_service: bool = true
 
 @export var service_scope: StringName = &""
 
 ## Where avatars live. Built from the config when left empty.
-var store: DotAvatarStore = null
+var store: GSAvatarStore = null
 
 ## Resolves part ids to content. Client-side only; a server never needs one.
-var catalogue: DotAvatarCatalogue = null
+var catalogue: GSAvatarCatalogue = null
 
-## `func(user_key: String) -> DotAvatar`: the avatar a player with none stored wears. Unset, [method DotAvatarSchema.default_avatar].
+## `func(user_key: String) -> GSAvatar`: the avatar a player with none stored wears. Unset, [method GSAvatarSchema.default_avatar].
 ## The schema default is one document, so a game that varies its stock look per player (hash the scoped [param user_key], stable across visits) supplies this.
 ## The result is validated like anything stored; a failure falls back to the default with a log line, as a stock look never justifies leaving somebody undrawn.
 var default_avatar_fn: Callable = Callable()
 
-## `func(avatar: DotAvatar) -> DotAvatar`: a document for ANOTHER schema, as this one.
+## `func(avatar: GSAvatar) -> GSAvatar`: a document for ANOTHER schema, as this one.
 ## A member has one site avatar over the site's schema and each game has its own; without this every member arrives as stock.
 ## Runs before conform and validate. Null, or no function, is the default avatar with no line: unreadable is not an error.
 var translate_fn: Callable = Callable()
@@ -65,7 +65,7 @@ var translate_fn: Callable = Callable()
 ## user_key -> {avatar, expires_at, active}
 var _cache: Dictionary = {}
 
-var _publish_limiter: DotRateLimiter = null
+var _publish_limiter: GSRateLimiter = null
 var _registered_name: StringName = &""
 var _ready_ok: bool = false
 
@@ -80,13 +80,13 @@ func _ready() -> void:
 	var res := await setup()
 
 	if not res.ok:
-		DotLog.result(CHANNEL, "avatar manager setup", res)
+		GSLog.result(CHANNEL, "avatar manager setup", res)
 
 
-func setup() -> DotResult:
+func setup() -> GSResult:
 	if schema == null:
-		return DotResult.fail(
-			DotError.CODE_INVALID,
+		return GSResult.fail(
+			GSError.CODE_INVALID,
 			"An avatar manager needs a schema."
 		)
 
@@ -99,7 +99,7 @@ func setup() -> DotResult:
 		return schema_ok.wrap("The avatar schema is not usable.")
 
 	if config == null:
-		config = DotAvatarConfig.new()
+		config = GSAvatarConfig.new()
 
 	if load_layered_config or config_file != "":
 		var loaded := config.load_layered(config_file)
@@ -119,58 +119,58 @@ func setup() -> DotResult:
 	var opened := await store.open()
 
 	if not opened.ok:
-		DotLog.warn(
+		GSLog.warn(
 			CHANNEL,
 			"the avatar store did not open; players will get default avatars",
 			{"store": store._store_name(), "error": str(opened.error)}
 		)
 
-	_publish_limiter = DotRateLimiter.new(
+	_publish_limiter = GSRateLimiter.new(
 		float(config.publishes_per_minute) / 60.0,
 		float(config.publishes_per_minute)
 	)
 
 	if register_service:
 		_registered_name = (
-			DotRegistry.scoped_name(SERVICE, service_scope)
+			GSRegistry.scoped_name(SERVICE, service_scope)
 			if service_scope != &"" else SERVICE
 		)
-		DotRegistry.register(_registered_name, self)
+		GSRegistry.register(_registered_name, self)
 
 	_ready_ok = true
 
-	DotLog.info(
+	GSLog.info(
 		CHANNEL,
 		"avatar manager ready",
 		{"schema": String(schema.id), "config": config.describe_summary()}
 	)
 
-	return DotResult.success(null)
+	return GSResult.success(null)
 
 
-func _build_store() -> DotResult:
+func _build_store() -> GSResult:
 	match config.backend:
 		"memory":
-			return DotResult.success(DotAvatarStoreMemory.new())
+			return GSResult.success(GSAvatarStoreMemory.new())
 		"local":
-			return DotResult.success(DotAvatarStoreLocal.at(config.directory))
+			return GSResult.success(GSAvatarStoreLocal.at(config.directory))
 		"backbone":
-			# Built from the CONFIG's credential, not one this addon mints; a host sharing one DotHttp across
+			# Built from the CONFIG's credential, not one this addon mints; a host sharing one GSHttp across
 			# every backbone call assigns `store` directly.
-			var backbone := DotAvatarStoreBackbone.at(
+			var backbone := GSAvatarStoreBackbone.at(
 				config.backbone_url, config.backbone_token
 			)
 			backbone.read_only = config.read_only
-			return DotResult.success(backbone)
+			return GSResult.success(backbone)
 
-	return DotResult.fail(
-		DotError.CODE_INVALID, "Unknown avatar backend.", config.backend
+	return GSResult.fail(
+		GSError.CODE_INVALID, "Unknown avatar backend.", config.backend
 	)
 
 
 func _exit_tree() -> void:
 	if _registered_name != &"":
-		DotRegistry.unregister_instance(_registered_name, self)
+		GSRegistry.unregister_instance(_registered_name, self)
 		_registered_name = &""
 
 	if store != null:
@@ -185,38 +185,38 @@ func is_ready() -> bool:
 ## Conforms a stored document when the config allows, and falls back to the schema default rather than nothing: a player must be visible.
 func resolve(
 	user_key: String,
-	entitlements: DotAvatarEntitlements = null
-) -> DotResult:
+	entitlements: GSAvatarEntitlements = null
+) -> GSResult:
 	if not _ready_ok:
-		return DotResult.fail(
-			DotError.CODE_STATE, "The avatar manager is not ready yet."
+		return GSResult.fail(
+			GSError.CODE_STATE, "The avatar manager is not ready yet."
 		)
 
 	var cached := _cached(user_key)
 
 	if cached != null:
 		avatar_resolved.emit(user_key, cached)
-		return DotResult.success(cached)
+		return GSResult.success(cached)
 
-	var fetched: DotResult = await store.fetch(user_key)
+	var fetched: GSResult = await store.fetch(user_key)
 
 	if not fetched.ok:
 		# The store could not answer. A default avatar keeps the player visible;
 		# publishing over the top of what could not be read is what would lose it, so
 		# nothing is written here.
-		DotLog.warn(
+		GSLog.warn(
 			CHANNEL,
 			"could not read an avatar; using the default",
 			{"key": user_key, "error": str(fetched.error)}
 		)
 		return _default_for(user_key)
 
-	var avatar: DotAvatar = fetched.value
+	var avatar: GSAvatar = fetched.value
 
 	if avatar == null:
 		if not config.allow_default_avatar:
-			return DotResult.fail(
-				DotError.CODE_STATE,
+			return GSResult.fail(
+				GSError.CODE_STATE,
 				"This player has not made an avatar yet.",
 				user_key
 			)
@@ -226,8 +226,8 @@ func resolve(
 	if avatar.schema_id != schema.id:
 		var translated: Variant = translate_fn.call(avatar) if translate_fn.is_valid() else null
 
-		if not (translated is DotAvatar):
-			DotLog.debug(CHANNEL, "an avatar for another schema; using the default", {
+		if not (translated is GSAvatar):
+			GSLog.debug(CHANNEL, "an avatar for another schema; using the default", {
 				"key": user_key, "schema": String(avatar.schema_id),
 			})
 			return _default_for(user_key)
@@ -242,7 +242,7 @@ func resolve(
 		if not conformed.ok:
 			# Not repairable — a document for another schema entirely. The default is
 			# better than refusing the player.
-			DotLog.warn(
+			GSLog.warn(
 				CHANNEL,
 				"a stored avatar could not be conformed; using the default",
 				{"key": user_key, "error": str(conformed.error)}
@@ -253,7 +253,7 @@ func resolve(
 
 		if not changes.is_empty():
 			avatar_conformed.emit(user_key, changes)
-			DotLog.debug(
+			GSLog.debug(
 				CHANNEL, "conformed a stored avatar",
 				{"key": user_key, "changes": ", ".join(changes)}
 			)
@@ -263,7 +263,7 @@ func resolve(
 	)
 
 	if not valid.ok:
-		DotLog.warn(
+		GSLog.warn(
 			CHANNEL,
 			"a stored avatar is not valid; using the default",
 			{"key": user_key, "error": str(valid.error)}
@@ -273,10 +273,10 @@ func resolve(
 	_remember(user_key, avatar, true)
 	avatar_resolved.emit(user_key, avatar)
 
-	return DotResult.success(avatar)
+	return GSResult.success(avatar)
 
 
-func _default_for(user_key: String) -> DotResult:
+func _default_for(user_key: String) -> GSResult:
 	var avatar := schema.default_avatar()
 
 	if default_avatar_fn.is_valid():
@@ -286,48 +286,48 @@ func _default_for(user_key: String) -> DotResult:
 		# and warning for every first-time player would be about a configuration nobody got wrong.
 		if chosen == null:
 			pass
-		elif chosen is DotAvatar and schema.validate(chosen).ok:
+		elif chosen is GSAvatar and schema.validate(chosen).ok:
 			avatar = chosen
 		else:
-			DotLog.warn(CHANNEL, "the game's default avatar is not valid; using the schema's", {
+			GSLog.warn(CHANNEL, "the game's default avatar is not valid; using the schema's", {
 				"key": user_key,
-				"why": str(schema.validate(chosen).error) if chosen is DotAvatar else "not a DotAvatar",
+				"why": str(schema.validate(chosen).error) if chosen is GSAvatar else "not a GSAvatar",
 			})
 
 	_remember(user_key, avatar, true)
 	avatar_resolved.emit(user_key, avatar)
-	return DotResult.success(avatar)
+	return GSResult.success(avatar)
 
 
 ## Accepts an avatar from a player, or refuses it with a reason.
 ## The trust boundary: structure, schema and entitlements are all checked before anything is stored, and none loads an asset.
 func publish(
 	user_key: String,
-	avatar: DotAvatar,
-	entitlements: DotAvatarEntitlements = null
-) -> DotResult:
+	avatar: GSAvatar,
+	entitlements: GSAvatarEntitlements = null
+) -> GSResult:
 	if not _ready_ok:
-		return DotResult.fail(
-			DotError.CODE_STATE, "The avatar manager is not ready yet."
+		return GSResult.fail(
+			GSError.CODE_STATE, "The avatar manager is not ready yet."
 		)
 
 	if avatar == null:
-		return DotResult.fail(DotError.CODE_INVALID, "No avatar.")
+		return GSResult.fail(GSError.CODE_INVALID, "No avatar.")
 
 	if config.read_only:
-		return DotResult.fail(
-			DotError.CODE_FORBIDDEN, "This server does not store avatars."
+		return GSResult.fail(
+			GSError.CODE_FORBIDDEN, "This server does not store avatars."
 		)
 
 	if _publish_limiter != null and not _publish_limiter.allow(user_key):
 		var wait := _publish_limiter.retry_after(user_key)
-		var error := DotError.make(
-			DotError.CODE_RATE_LIMITED,
+		var error := GSError.make(
+			GSError.CODE_RATE_LIMITED,
 			"That is too many avatar changes in a row.",
 			"retry in %.1fs" % wait
 		)
 		error.retry_after = wait
-		return DotResult.failure(error)
+		return GSResult.failure(error)
 
 	var valid := schema.validate(
 		avatar, entitlements if config.enforce_entitlements else null
@@ -338,7 +338,7 @@ func publish(
 		avatar_refused.emit(user_key, str(valid.error))
 		return valid
 
-	var stored: DotResult = await store.store(user_key, avatar)
+	var stored: GSResult = await store.store(user_key, avatar)
 
 	if not stored.ok:
 		return stored
@@ -351,13 +351,13 @@ func publish(
 	_update_profile_digest(user_key, avatar)
 
 	avatar_published.emit(user_key, avatar)
-	return DotResult.success(avatar.digest())
+	return GSResult.success(avatar.digest())
 
 
 ## Writes the avatar's digest into the player's profile, when GameSpice User is present.
 ## Best-effort: a profile write must not fail an avatar publish.
-func _update_profile_digest(user_key: String, avatar: DotAvatar) -> void:
-	var users := DotRegistry.get_service(USER_SERVICE)
+func _update_profile_digest(user_key: String, avatar: GSAvatar) -> void:
+	var users := GSRegistry.get_service(USER_SERVICE)
 
 	if users == null or not users.has_method("save"):
 		return
@@ -380,7 +380,7 @@ func _update_profile_digest(user_key: String, avatar: DotAvatar) -> void:
 	profile.set("avatar_id", avatar.digest())
 
 
-func _cached(user_key: String) -> DotAvatar:
+func _cached(user_key: String) -> GSAvatar:
 	if not _cache.has(user_key):
 		return null
 
@@ -393,7 +393,7 @@ func _cached(user_key: String) -> DotAvatar:
 	return entry["avatar"]
 
 
-func _remember(user_key: String, avatar: DotAvatar, active: bool) -> void:
+func _remember(user_key: String, avatar: GSAvatar, active: bool) -> void:
 	_cache[user_key] = {
 		"avatar": avatar,
 		"active": active,

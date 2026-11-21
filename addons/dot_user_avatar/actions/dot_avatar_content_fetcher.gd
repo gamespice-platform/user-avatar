@@ -1,11 +1,11 @@
-class_name DotAvatarContentFetcher
+class_name GSAvatarContentFetcher
 extends RefCounted
 
-## Downloads the avatar and action files a server requires into a [DotAvatarContentCache] before the
+## Downloads the avatar and action files a server requires into a [GSAvatarContentCache] before the
 ## client connects. Every required id must be listed by the site and arrive verified, or [method prepare]
 ## fails and the gate stays held; files load via [GLTFDocument], so there is no pack to leak.
 
-signal failed(error: DotError)
+signal failed(error: GSError)
 
 const CHANNEL := "avatar.fetch"
 
@@ -18,12 +18,12 @@ const MAX_REQUIRED := 64
 ## Mirror copies tried before the origin, at most this many per file.
 const MAX_MIRRORS_PER_FILE := 4
 
-var http: DotHttp = null
-var cache := DotAvatarContentCache.new()
-var gate: DotLoadGate = null
+var http: GSHttp = null
+var cache := GSAvatarContentCache.new()
+var gate: GSLoadGate = null
 
 ## Optional [code]func(url: String) -> PackedStringArray[/code] of mirror copies to try first,
-## usually GameSpice Cloud's [code]DotCloudClient.mirror_alternatives[/code]. Every copy is hash-checked
+## usually GameSpice Cloud's [code]GSCloudClient.mirror_alternatives[/code]. Every copy is hash-checked
 ## by the cache, so a mirror can only fail a download; the origin url is always tried last.
 var mirror_alternatives_fn: Callable = Callable()
 
@@ -34,14 +34,14 @@ var resume := true
 
 ## Fetches the library, then every missing file in [param required]. Success value is the
 ## number of files downloaded (zero when all were already kept).
-func prepare(base_url: String, server_id: int, required: Array) -> DotResult:
+func prepare(base_url: String, server_id: int, required: Array) -> GSResult:
 	var ids := _clean_ids(required)
 	if not ids.ok:
 		return _fail(ids.error)
 	if (ids.value as Array).is_empty():
-		return DotResult.success(0)
+		return GSResult.success(0)
 	if http == null:
-		return _fail(DotError.make(DotError.CODE_STATE, "no HTTP client to fetch avatar content with"))
+		return _fail(GSError.make(GSError.CODE_STATE, "no HTTP client to fetch avatar content with"))
 
 	if gate != null and is_instance_valid(gate):
 		gate.hold(REASON, "Downloading avatars")
@@ -78,7 +78,7 @@ static func rows_for(library: Variant, ids: Array) -> Array:
 
 ## Downloads and keeps every row not already cached. Holds the gate for the duration and
 ## releases it only if all succeed.
-func fetch_rows(rows: Array) -> DotResult:
+func fetch_rows(rows: Array) -> GSResult:
 	if gate != null and is_instance_valid(gate):
 		gate.hold(REASON, "Downloading avatars")
 	var todo := []
@@ -86,11 +86,11 @@ func fetch_rows(rows: Array) -> DotResult:
 		var id := String(row.get("contentId", ""))
 		var url := String(row.get("url", ""))
 		if url == "":
-			return _fail(DotError.make(DotError.CODE_INVALID, "the server requires %s but the library does not list it" % id))
+			return _fail(GSError.make(GSError.CODE_INVALID, "the server requires %s but the library does not list it" % id))
 		if not (url.begins_with("https://") or url.begins_with("http://")):
-			return _fail(DotError.make(DotError.CODE_INVALID, "avatar content %s has a non-http url" % id))
-		if int(row.get("size", -1)) <= 0 or int(row.get("size", -1)) > DotAvatarContentCache.MAX_BYTES:
-			return _fail(DotError.make(DotError.CODE_INTEGRITY, "avatar content %s has an unusable size" % id))
+			return _fail(GSError.make(GSError.CODE_INVALID, "avatar content %s has a non-http url" % id))
+		if int(row.get("size", -1)) <= 0 or int(row.get("size", -1)) > GSAvatarContentCache.MAX_BYTES:
+			return _fail(GSError.make(GSError.CODE_INTEGRITY, "avatar content %s has an unusable size" % id))
 		if not cache.has(row):
 			todo.append(row)
 
@@ -103,10 +103,10 @@ func fetch_rows(rows: Array) -> DotResult:
 		done += 1
 	# The cache writes under user://; a browser keeps that in memory until synced.
 	if done > 0:
-		DotWeb.sync_filesystem()
+		GSWeb.sync_filesystem()
 	if gate != null and is_instance_valid(gate):
 		gate.release(REASON)
-	return DotResult.success(done)
+	return GSResult.success(done)
 
 
 ## The mirror copies of [param url] worth trying (https only, capped), then the origin.
@@ -123,27 +123,27 @@ func urls_for(url: String) -> PackedStringArray:
 
 
 ## Tries each url in turn until one delivers bytes the cache accepts.
-func _download(row: Dictionary) -> DotResult:
-	var last := DotResult.fail(DotError.CODE_STATE, "no url to download from")
+func _download(row: Dictionary) -> GSResult:
+	var last := GSResult.fail(GSError.CODE_STATE, "no url to download from")
 	for url in urls_for(String(row["url"])):
 		last = await _download_from(row, url)
 		if last.ok:
 			return last
-		DotLog.debug(CHANNEL, "%s from %s: %s" % [row["contentId"], url, last.error.message])
+		GSLog.debug(CHANNEL, "%s from %s: %s" % [row["contentId"], url, last.error.message])
 	return last
 
 
-func _download_from(row: Dictionary, url: String) -> DotResult:
+func _download_from(row: Dictionary, url: String) -> GSResult:
 	var size := int(row["size"])
 	if not resume:
 		var got := await http.get_bytes(url, {}, size)
 		return cache.store(row, got.value) if got.ok else got
 	var sha := String(row.get("sha256", "")).to_lower()
 	if sha.length() != 64 or not sha.is_valid_hex_number():
-		return DotResult.fail(DotError.CODE_INTEGRITY, "avatar content has no usable sha256", String(row["contentId"]))
+		return GSResult.fail(GSError.CODE_INTEGRITY, "avatar content has no usable sha256", String(row["contentId"]))
 	# Keyed by hash, so a resumed transfer can only ever be continued with the same file's bytes.
 	var part := "%s/%s.part" % [cache.directory, sha]
-	var have := DotPaths.file_size(part) if FileAccess.file_exists(part) else 0
+	var have := GSPaths.file_size(part) if FileAccess.file_exists(part) else 0
 	if have > size:
 		DirAccess.remove_absolute(part)
 		have = 0
@@ -152,9 +152,9 @@ func _download_from(row: Dictionary, url: String) -> DotResult:
 		var dl := await http.download_to_file(url, part, have, {}, size - have)
 		if not dl.ok:
 			return dl
-	if DotPaths.file_size(part) != size:
+	if GSPaths.file_size(part) != size:
 		DirAccess.remove_absolute(part)
-		return DotResult.fail(DotError.CODE_INTEGRITY, "avatar content arrived at the wrong size", String(row["contentId"]))
+		return GSResult.fail(GSError.CODE_INTEGRITY, "avatar content arrived at the wrong size", String(row["contentId"]))
 	var kept := cache.store(row, FileAccess.get_file_as_bytes(part))
 	DirAccess.remove_absolute(part)
 	if not kept.ok and have > 0:
@@ -163,16 +163,16 @@ func _download_from(row: Dictionary, url: String) -> DotResult:
 	return kept
 
 
-func _clean_ids(required: Array) -> DotResult:
+func _clean_ids(required: Array) -> GSResult:
 	if required.size() > MAX_REQUIRED:
-		return DotResult.fail(DotError.CODE_INVALID, "the server requires too many avatar files", str(required.size()))
+		return GSResult.fail(GSError.CODE_INVALID, "the server requires too many avatar files", str(required.size()))
 	var out := []
 	for id in required:
-		if not id is String or not DotAvatarContentCache.is_content_id(id):
-			return DotResult.fail(DotError.CODE_INVALID, "the server advertised a malformed content id", str(id).left(64))
+		if not id is String or not GSAvatarContentCache.is_content_id(id):
+			return GSResult.fail(GSError.CODE_INVALID, "the server advertised a malformed content id", str(id).left(64))
 		if not out.has(id):
 			out.append(id)
-	return DotResult.success(out)
+	return GSResult.success(out)
 
 
 func _progress(done: int, total: int, id: String) -> void:
@@ -181,11 +181,11 @@ func _progress(done: int, total: int, id: String) -> void:
 
 
 ## The gate stays held, with the reason as its text: the caller does not connect.
-func _fail(err: DotError, context: String = "") -> DotResult:
-	var res := DotResult.failure(err)
+func _fail(err: GSError, context: String = "") -> GSResult:
+	var res := GSResult.failure(err)
 	if context != "":
 		res = res.wrap(context)
-	DotLog.warn(CHANNEL, str(res.error))
+	GSLog.warn(CHANNEL, str(res.error))
 	if gate != null and is_instance_valid(gate):
 		gate.set_progress(gate.progress(), "Could not load avatars: %s" % res.error.message)
 	failed.emit(res.error)
