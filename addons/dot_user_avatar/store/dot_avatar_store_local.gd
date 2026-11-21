@@ -9,8 +9,10 @@ const LOCAL_CHANNEL := "avatar.store.local"
 var directory: String = "user://avatars"
 
 ## Write through a temporary file and rename over the target.
-## Passed to [method DotPaths.write_json], which does the temporary file, rename and browser IndexedDB flush.
+## Passed to [DotSaveStoreFile], which does the temporary file, rename and browser IndexedDB flush.
 var atomic_writes: bool = true
+
+var _files: DotSaveStoreFile
 
 
 static func at(path: String) -> DotAvatarStoreLocal:
@@ -36,13 +38,24 @@ func _open() -> DotResult:
 	return DotResult.success(true)
 
 
+## The file store under this one, with the folder and write mode as they stand now.
+func files() -> DotSaveStoreFile:
+	if _files == null:
+		_files = DotSaveStoreFile.new()
+		_files.suffix = ".json"
+		_files.key_check = func(key: String) -> bool: return DotPaths.safe_relative(key + ".json").ok
+	_files.directory = directory
+	_files.atomic = atomic_writes
+	return _files
+
+
 func _path_for(user_key: String) -> DotResult:
 	var relative := DotPaths.safe_relative("%s.json" % user_key)
 
 	if not relative.ok:
 		return relative.wrap("That key is not a usable filename.")
 
-	return DotResult.success("%s/%s" % [directory, relative.value])
+	return DotResult.success(files().path_for(user_key))
 
 
 func _fetch(user_key: String) -> DotResult:
@@ -76,9 +89,7 @@ func _store(user_key: String, avatar: DotAvatar) -> DotResult:
 	if not path.ok:
 		return path
 
-	var written := DotPaths.write_json(
-		path.value, avatar.to_dict(), true, atomic_writes
-	)
+	var written := files().write(user_key, JSON.stringify(avatar.to_dict(), "\t"))
 
 	if not written.ok:
 		return written.wrap("Could not write the avatar.")
@@ -95,23 +106,11 @@ func _remove(user_key: String) -> DotResult:
 	if not FileAccess.file_exists(path.value):
 		return DotResult.success(true)
 
-	var dir := DirAccess.open(directory)
+	var removed := files().remove(user_key)
 
-	if dir == null:
-		return DotResult.fail(
-			DotError.CODE_IO, "Could not open the avatar directory.", directory
-		)
+	if not removed.ok:
+		return removed.wrap("Removing the avatar")
 
-	var removed := dir.remove(String(path.value).get_file())
-
-	if removed != OK:
-		return DotResult.failure(
-			DotError.from_engine(removed, "Removing the avatar")
-		)
-
-	# DotPaths flushes on write; a deletion goes through DirAccess directly, so on a
-	# web build it has to be flushed here or the file returns on the next load.
-	DotWeb.sync_filesystem()
 	return DotResult.success(true)
 
 

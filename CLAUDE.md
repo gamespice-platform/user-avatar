@@ -4,7 +4,7 @@ Player avatars as data, validated by a server that never loads a mesh: a schema 
 
 Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is specific to avatars. Most of this addon's reasoning is current rules rather than history, so its docs are mostly design.
 
-**The distributable is `addons/dot_user_avatar/`.** Only GameSpice Core is a dependency; GameSpice Cloud, GameSpice User and GameSpice Net are reached through `DotRegistry` or duck typing and named nowhere.
+**The distributable is `addons/dot_user_avatar/`.** GameSpice Core and [GameSpice Save](../dot-save) (`ln -s ../../dot-save/addons/dot_save addons/dot_save`, gitignored) are the dependencies; GameSpice Cloud, GameSpice User and GameSpice Net are reached through `DotRegistry` or duck typing and named nowhere.
 
 ## Read before
 
