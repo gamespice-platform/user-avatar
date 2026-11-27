@@ -2,6 +2,8 @@
 
 Player avatars as data, so a dedicated server can check one without ever loading a mesh. An avatar is a schema id, a set of part ids and a set of colours: a few dozen bytes. The server validates it against the schema and the player's entitlements, and a client resolves the part ids to real assets.
 
+This is a GameSpice addon, MIT, built with Claude Code, tested headless with `examples/avatar_demo.tscn`. The games in [Zee's Games](https://zeesgames.com) are built on GameSpice addons and run on live servers, and avatars are validated by this code there. Bug reports go to the [issue tracker](https://github.com/gamespice-platform/user-avatar/issues).
+
 ## Install
 
 1. Get [Godot 4.7](https://godotengine.org/download).
@@ -80,8 +82,27 @@ The protocol is `GET`, `PUT` and `DELETE /user/{key}/avatar`, plus a public `GET
 
 Import the project once, then run `examples/avatar_demo.tscn` headless with Godot. It exits non-zero on failure. One `ERR avatar.store an avatar was not saved` line on stderr is expected, because the suite fails a back end write on purpose.
 
-## Status and licence
+## Used by
 
-Part of the [**GameSpice**](https://gamespice.net) platform: a family of Godot addons. Written with Claude Code and maintained by `gamemann`. Every addon has headless tests, but little of this has been played by real users yet, so expect rough edges and please [open an issue](https://github.com/gamespice-platform/user-avatar/issues) when you hit one.
+All of these games from Zee's Games vendor this addon:
+
+- [Fatal Contact](https://zeesgames.com/fatal-contact)
+- [Airdrift](https://zeesgames.com/airdrift)
+- [Playlot](https://zeesgames.com/playlot)
+- [Hungario](https://zeesgames.com/hungario)
+- [Buses From Hell](https://zeesgames.com/buses-from-hell)
+- [Smash Copter](https://zeesgames.com/smash-copter)
+- [Zombie Zone](https://zeesgames.com/zombie-zone)
+- [Hide n Seek](https://zeesgames.com/hide-n-seek)
+- [Prop Hunt](https://zeesgames.com/prop-hunt)
+- [Murder Mystery](https://zeesgames.com/murder-mystery)
+- [Deathrun](https://zeesgames.com/deathrun)
+- [Wipeout](https://zeesgames.com/wipeout)
+- [Dangerous Delivery](https://zeesgames.com/dangerous-delivery)
+- [Look At Me](https://zeesgames.com/look-at-me)
+
+The whole collection is at [zeesgames.com](https://zeesgames.com).
+
+## Licence
 
 MIT licence, see [LICENSE](LICENSE). The only closed part of the [**GameSpice**](https://gamespice.net) platform is the web back end; you can use your own instead of GameSpice's.
